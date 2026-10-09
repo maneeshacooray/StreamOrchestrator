@@ -1,12 +1,42 @@
-﻿<Window x:Class="StreamOrchestrator.MainWindow"
+<Window x:Class="StreamOrchestrator.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:StreamOrchestrator"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="StreamOrchestrator" Height="600" Width="960"
+        Background="#1E1E1E">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="14,6" />
+            <Setter Property="Margin" Value="4,0,0,0" />
+            <Setter Property="MinWidth" Value="72" />
+        </Style>
+    </Window.Resources>
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
 
+        <!-- Control bar -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,8" LastChildFill="True">
+            <Button DockPanel.Dock="Right" x:Name="StopButton" Content="Stop" Click="StopButton_Click" IsEnabled="False" />
+            <Button DockPanel.Dock="Right" x:Name="PlayButton" Content="Play" Click="PlayButton_Click" />
+            <TextBlock DockPanel.Dock="Left" Text="RTSP URL" Foreground="#CCCCCC"
+                       VerticalAlignment="Center" Margin="2,0,8,0" />
+            <TextBox x:Name="UrlBox" VerticalContentAlignment="Center" Padding="6,4"
+                     Text="rtsp://" />
+        </DockPanel>
+
+        <!-- Video surface -->
+        <Border Grid.Row="1" x:Name="VideoContainer" Background="Black"
+                BorderBrush="#333333" BorderThickness="1" />
+
+        <!-- Status bar -->
+        <TextBlock Grid.Row="2" x:Name="StatusText" Foreground="#9E9E9E" Margin="2,6,0,0"
+                   Text="Ready." />
     </Grid>
 </Window>
