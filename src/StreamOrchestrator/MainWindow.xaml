@@ -5,22 +5,28 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:StreamOrchestrator"
         mc:Ignorable="d"
-        Title="StreamOrchestrator" Height="320" Width="560"
+        Title="StreamOrchestrator" Height="560" Width="640"
         Background="#1E1E1E">
     <Window.Resources>
         <Style TargetType="Button">
-            <Setter Property="Padding" Value="14,6" />
+            <Setter Property="Padding" Value="12,6" />
             <Setter Property="Margin" Value="4,0,0,0" />
-            <Setter Property="MinWidth" Value="80" />
+            <Setter Property="MinWidth" Value="76" />
         </Style>
         <Style TargetType="TextBlock" x:Key="Label">
             <Setter Property="Foreground" Value="#CCCCCC" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Margin" Value="2,0,8,0" />
         </Style>
+        <Style TargetType="TextBlock" x:Key="Header">
+            <Setter Property="Foreground" Value="#E0E0E0" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="2,0,0,6" />
+        </Style>
     </Window.Resources>
     <Grid Margin="12">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -36,20 +42,49 @@
             <TextBox x:Name="UrlBox" VerticalContentAlignment="Center" Padding="6,4" Text="rtsp://" />
         </DockPanel>
 
-        <!-- Display selection + move -->
-        <DockPanel Grid.Row="1" Margin="0,0,0,10" LastChildFill="True">
-            <Button DockPanel.Dock="Right" x:Name="MoveButton" Content="Move ⇄" Click="MoveButton_Click"
-                    ToolTip="Move the stream to the other display" IsEnabled="False" MinWidth="90" />
-            <Button DockPanel.Dock="Right" x:Name="RefreshButton" Content="↻" Click="RefreshButton_Click"
-                    ToolTip="Re-scan displays" MinWidth="36" />
-            <TextBlock DockPanel.Dock="Left" Text="Display" Style="{StaticResource Label}" />
+        <!-- Display selection -->
+        <DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
+            <Button DockPanel.Dock="Right" x:Name="RefreshDisplaysButton" Content="↻" Click="RefreshDisplaysButton_Click"
+                    ToolTip="Re-scan displays" MinWidth="34" />
+            <TextBlock DockPanel.Dock="Left" Text="Stream on" Style="{StaticResource Label}" />
             <ComboBox x:Name="MonitorCombo" VerticalContentAlignment="Center" Padding="6,4" />
         </DockPanel>
 
-        <TextBlock Grid.Row="2" Foreground="#777" TextWrapping="Wrap"
-                   Text="The stream plays fullscreen on the selected display. Use Move ⇄ to send it to the other screen." />
+        <!-- Orchestration actions -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,12" HorizontalAlignment="Left">
+            <Button x:Name="MoveButton" Content="Move stream ⇄" Click="MoveButton_Click"
+                    ToolTip="Send the stream to the other display (swaps with what's there)"
+                    IsEnabled="False" MinWidth="120" Margin="0,0,0,0" />
+            <Button x:Name="SwapButton" Content="Swap displays ⇄" Click="SwapButton_Click"
+                    ToolTip="Exchange the contents of the two displays"
+                    IsEnabled="False" MinWidth="120" />
+        </StackPanel>
+
+        <!-- Detected windows header -->
+        <DockPanel Grid.Row="3" Margin="0,0,0,6" LastChildFill="True">
+            <Button DockPanel.Dock="Right" x:Name="RefreshWindowsButton" Content="Refresh" Click="RefreshWindowsButton_Click" />
+            <TextBlock Text="Presentation windows" Style="{StaticResource Header}" VerticalAlignment="Center" />
+        </DockPanel>
+
+        <!-- Detected windows list -->
+        <Border Grid.Row="4" BorderBrush="#333" BorderThickness="1" Background="#252526">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="WindowList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <DockPanel Margin="6,4" LastChildFill="True">
+                                <Button DockPanel.Dock="Right" Content="→ D2" Tag="1" Click="SendWindow_Click" MinWidth="48" />
+                                <Button DockPanel.Dock="Right" Content="→ D1" Tag="0" Click="SendWindow_Click" MinWidth="48" />
+                                <TextBlock Text="{Binding Title}" Foreground="#DDDDDD" VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis" />
+                            </DockPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
 
         <!-- Status -->
-        <TextBlock Grid.Row="4" x:Name="StatusText" Foreground="#9E9E9E" Margin="0,8,0,0" Text="Ready." />
+        <TextBlock Grid.Row="5" x:Name="StatusText" Foreground="#9E9E9E" Margin="0,8,0,0" Text="Ready." />
     </Grid>
 </Window>

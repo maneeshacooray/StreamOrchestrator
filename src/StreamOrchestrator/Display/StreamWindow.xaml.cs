@@ -16,9 +16,6 @@ public partial class StreamWindow : Window
     private bool _playerReady;
     private string? _pendingUrl;
 
-    /// <summary>Handle of the monitor the window currently occupies (updated on each placement).</summary>
-    public IntPtr CurrentMonitorHandle { get; private set; }
-
     public StreamWindow()
     {
         InitializeComponent();
@@ -62,20 +59,6 @@ public partial class StreamWindow : Window
         NativeMethods.SetWindowPos(hwnd, NativeMethods.HWND_TOP,
             monitor.Left, monitor.Top, monitor.Width, monitor.Height,
             NativeMethods.SWP_SHOWWINDOW | NativeMethods.SWP_FRAMECHANGED);
-
-        CurrentMonitorHandle = monitor.Handle;
-    }
-
-    /// <summary>Moves the stream to the other display (dual-monitor setup).</summary>
-    public MonitorInfo? MoveToOtherDisplay()
-    {
-        var monitors = MonitorService.GetMonitors();
-        if (monitors.Count < 2) return null;
-
-        var other = monitors.FirstOrDefault(m => m.Handle != CurrentMonitorHandle)
-                    ?? monitors[0];
-        ShowOnMonitor(other);
-        return other;
     }
 
     public void ShutDown()

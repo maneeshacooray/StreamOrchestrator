@@ -1,34 +1,51 @@
 using System.Windows;
+using System.Windows.Controls;
 using StreamOrchestrator.Display;
+using StreamOrchestrator.Orchestration;
+using StreamOrchestrator.Windows;
 
 namespace StreamOrchestrator;
 
 /// <summary>
-/// Control panel: owns the stream URL, display selection, and the borderless <see cref="StreamWindow"/>
-/// that renders the live feed. Playback and window orchestration are driven from here.
+/// Control panel: owns the stream URL, display selection, the borderless <see cref="StreamWindow"/>,
+/// and the <see cref="LayoutController"/> that moves/swaps surfaces between the two displays.
 /// </summary>
 public partial class MainWindow : Window
 {
+    private readonly LayoutController _layout = new();
     private StreamWindow? _stream;
+    private StreamSurface? _streamSurface;
 
     public MainWindow()
     {
         InitializeComponent();
-        Loaded += (_, _) => LoadMonitors();
+        Loaded += (_, _) =>
+        {
+            LoadMonitors();
+            RefreshWindows();
+        };
         Closing += (_, _) => _stream?.ShutDown();
     }
 
     private void LoadMonitors()
     {
+        _layout.RefreshMonitors();
         var monitors = MonitorService.GetMonitors();
         MonitorCombo.ItemsSource = monitors;
         MonitorCombo.DisplayMemberPath = nameof(MonitorInfo.Label);
-        if (monitors.Count > 0) MonitorCombo.SelectedIndex = 0;
+        if (monitors.Count > 0 && MonitorCombo.SelectedIndex < 0) MonitorCombo.SelectedIndex = 0;
 
-        MoveButton.IsEnabled = monitors.Count >= 2 && _stream is not null;
-        StatusText.Text = monitors.Count >= 2
+        bool multi = monitors.Count >= 2;
+        SwapButton.IsEnabled = multi;
+        MoveButton.IsEnabled = multi && _stream is not null;
+        StatusText.Text = multi
             ? $"{monitors.Count} displays detected."
-            : "Single display detected — Move is disabled.";
+            : "Single display detected — move/swap disabled.";
+    }
+
+    private void RefreshWindows()
+    {
+        WindowList.ItemsSource = WindowEnumerator.GetWindows();
     }
 
     private MonitorInfo? SelectedMonitor => MonitorCombo.SelectedItem as MonitorInfo;
@@ -52,11 +69,11 @@ public partial class MainWindow : Window
         try
         {
             EnsureStreamWindow();
-            _stream!.ShowOnMonitor(monitor);
-            _stream.Open(url);
+            _layout.AssignToDisplay(monitor.Index, _streamSurface!);
+            _stream!.Open(url);
 
             StopButton.IsEnabled = true;
-            MoveButton.IsEnabled = MonitorService.GetMonitors().Count >= 2;
+            MoveButton.IsEnabled = _layout.MonitorCount >= 2;
             StatusText.Text = $"Playing on {monitor.Label}";
         }
         catch (Exception ex)
@@ -74,27 +91,45 @@ public partial class MainWindow : Window
 
     private void MoveButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_stream is null) return;
-        var moved = _stream.MoveToOtherDisplay();
-        if (moved is not null)
-        {
-            // Reflect the new display in the combo.
-            var match = (MonitorCombo.ItemsSource as IEnumerable<MonitorInfo>)?
-                .FirstOrDefault(m => m.Handle == moved.Handle);
-            if (match is not null) MonitorCombo.SelectedItem = match;
-            StatusText.Text = $"Moved to {moved.Label}";
-        }
+        if (_streamSurface is null) return;
+        if (_layout.MoveSurfaceToOtherDisplay(_streamSurface.Key))
+            StatusText.Text = "Moved the stream to the other display.";
     }
 
-    private void RefreshButton_Click(object sender, RoutedEventArgs e) => LoadMonitors();
+    private void SwapButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_layout.Swap())
+            StatusText.Text = "Swapped the two displays.";
+    }
+
+    private void SendWindow_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { DataContext: WindowInfo info, Tag: string tag }) return;
+        if (!int.TryParse(tag, out var displayIndex)) return;
+
+        if (_layout.DisplayAt(displayIndex) is null)
+        {
+            StatusText.Text = $"Display {displayIndex + 1} is not available.";
+            return;
+        }
+
+        _layout.AssignToDisplay(displayIndex, new WindowSurface(info.Handle, info.Title));
+        StatusText.Text = $"Sent \"{info.Title}\" to Display {displayIndex + 1}.";
+    }
+
+    private void RefreshDisplaysButton_Click(object sender, RoutedEventArgs e) => LoadMonitors();
+
+    private void RefreshWindowsButton_Click(object sender, RoutedEventArgs e) => RefreshWindows();
 
     private void EnsureStreamWindow()
     {
         if (_stream is not null) return;
-        _stream = new StreamWindow { Owner = null };
+        _stream = new StreamWindow();
+        _streamSurface = new StreamSurface(_stream);
         _stream.Closed += (_, _) =>
         {
             _stream = null;
+            _streamSurface = null;
             StopButton.IsEnabled = false;
             MoveButton.IsEnabled = false;
         };
