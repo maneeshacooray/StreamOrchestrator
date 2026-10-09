@@ -80,7 +80,6 @@ public partial class MainWindow : Window
         _layout.RefreshMonitors();
         var monitors = MonitorService.GetMonitors();
         MonitorCombo.ItemsSource = monitors;
-        MonitorCombo.DisplayMemberPath = nameof(MonitorInfo.Label);
         if (monitors.Count > 0 && MonitorCombo.SelectedIndex < 0)
         {
             var idx = _settings.LastDisplayIndex;
@@ -169,6 +168,7 @@ public partial class MainWindow : Window
         _stream?.Stop();
         StopButton.IsEnabled = false;
         StatusText.Text = "Stopped.";
+        SetLive("Idle", IdleBrush);
     }
 
     private void MoveButton_Click(object sender, RoutedEventArgs e)
@@ -244,18 +244,45 @@ public partial class MainWindow : Window
 
     private void RefreshWindowsButton_Click(object sender, RoutedEventArgs e) => RefreshWindows();
 
+    private void Nav_Checked(object sender, RoutedEventArgs e)
+    {
+        // Can fire during XAML parse before the panels exist; guard until they do.
+        if (StreamPanel is null || DisplaysPanel is null || PresentationsPanel is null) return;
+        StreamPanel.Visibility = NavStream.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        DisplaysPanel.Visibility = NavDisplays.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        PresentationsPanel.Visibility = NavPresentations.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private static readonly System.Windows.Media.Brush LiveBrush =
+        new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x2D, 0xD4, 0xBF));
+    private static readonly System.Windows.Media.Brush WarnBrush =
+        new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xF5, 0xA6, 0x23));
+    private static readonly System.Windows.Media.Brush IdleBrush =
+        new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x6B, 0x72, 0x79));
+
+    private void SetLive(string text, System.Windows.Media.Brush brush)
+    {
+        LiveText.Text = text;
+        LiveDot.Fill = brush;
+    }
+
     private void EnsureStreamWindow()
     {
         if (_stream is not null) return;
         _stream = new StreamWindow();
         _streamSurface = new StreamSurface(_stream);
         _stream.SetAlwaysOnTop(OnTopCheck.IsChecked == true);
-        _stream.StatusChanged += status => StatusText.Text = status switch
+        _stream.StatusChanged += status =>
         {
-            Player.PlaybackStatus.Live => "● Live",
-            Player.PlaybackStatus.Reconnecting => "Reconnecting…",
-            Player.PlaybackStatus.Ended => "Stream ended.",
-            _ => StatusText.Text,
+            switch (status)
+            {
+                case Player.PlaybackStatus.Live:
+                    StatusText.Text = "Live"; SetLive("Live", LiveBrush); break;
+                case Player.PlaybackStatus.Reconnecting:
+                    StatusText.Text = "Reconnecting…"; SetLive("Reconnecting", WarnBrush); break;
+                case Player.PlaybackStatus.Ended:
+                    StatusText.Text = "Stream ended."; SetLive("Idle", IdleBrush); break;
+            }
         };
         _stream.Closed += (_, _) =>
         {
