@@ -1,0 +1,65 @@
+name: build
+
+on:
+  push:
+    branches: [main, development]
+    tags: ['v*']
+  pull_request:
+    branches: [main, development]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write   # needed to create a Release on tag builds
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish self-contained build
+        shell: pwsh
+        run: ./scripts/publish.ps1   # fetches libmpv, then dotnet publish -> publish/
+
+      - name: Determine version
+        id: ver
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -like 'refs/tags/v*') {
+            $v = $env:GITHUB_REF -replace '^refs/tags/v',''
+          } else {
+            $v = '0.2.0'
+          }
+          "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "Version: $v"
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Compile installer
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=${{ steps.ver.outputs.version }}" installer\StreamOrchestrator.iss
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StreamOrchestrator-Setup
+          path: installer/Output/StreamOrchestrator-Setup.exe
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" `
+            "installer/Output/StreamOrchestrator-Setup.exe#StreamOrchestrator-Setup.exe" `
+            --title "${{ github.ref_name }} — StreamOrchestrator" `
+            --notes "Automated release. Download StreamOrchestrator-Setup.exe below — self-contained, no .NET/mpv needed. The installer is unsigned, so Windows SmartScreen may prompt (More info -> Run anyway)."

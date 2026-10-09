@@ -5,92 +5,382 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:StreamOrchestrator"
         mc:Ignorable="d"
-        Title="StreamOrchestrator" Height="560" Width="640"
-        Background="#1E1E1E">
+        Title="StreamOrchestrator" Height="560" Width="760" MinWidth="680" MinHeight="480"
+        Icon="Assets/icon.ico"
+        Background="#16181A"
+        FontFamily="Segoe UI" TextOptions.TextFormattingMode="Ideal">
+
     <Window.Resources>
-        <Style TargetType="Button">
-            <Setter Property="Padding" Value="12,6" />
-            <Setter Property="Margin" Value="4,0,0,0" />
-            <Setter Property="MinWidth" Value="76" />
+        <!-- Palette -->
+        <SolidColorBrush x:Key="Bg"        Color="#16181A" />
+        <SolidColorBrush x:Key="Sidebar"   Color="#1E2124" />
+        <SolidColorBrush x:Key="Card"      Color="#22262A" />
+        <SolidColorBrush x:Key="CardAlt"   Color="#1B1F22" />
+        <SolidColorBrush x:Key="Border"    Color="#33383D" />
+        <SolidColorBrush x:Key="Accent"    Color="#2DD4BF" />
+        <SolidColorBrush x:Key="AccentDk"  Color="#14B8A6" />
+        <SolidColorBrush x:Key="Ink"       Color="#0F1716" />
+        <SolidColorBrush x:Key="TextHi"    Color="#E8EAED" />
+        <SolidColorBrush x:Key="TextMid"   Color="#AEB4BA" />
+        <SolidColorBrush x:Key="TextDim"   Color="#6B7279" />
+
+        <!-- Base button (ghost) -->
+        <Style x:Key="Ghost" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource TextHi}" />
+            <Setter Property="Background" Value="#2C3238" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="14,7" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="7"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#3A4148" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="b" Property="Background" Value="#23282C" />
+                                <Setter Property="Foreground" Value="{StaticResource TextDim}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
-        <Style TargetType="TextBlock" x:Key="Label">
-            <Setter Property="Foreground" Value="#CCCCCC" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Margin" Value="2,0,8,0" />
-        </Style>
-        <Style TargetType="TextBlock" x:Key="Header">
-            <Setter Property="Foreground" Value="#E0E0E0" />
+
+        <!-- Accent button -->
+        <Style x:Key="AccentBtn" TargetType="Button" BasedOn="{StaticResource Ghost}">
+            <Setter Property="Background" Value="{StaticResource Accent}" />
+            <Setter Property="Foreground" Value="{StaticResource Ink}" />
             <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="7"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="{StaticResource AccentDk}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="b" Property="Background" Value="#2A4C47" />
+                                <Setter Property="Foreground" Value="#5E8C85" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Small ghost (icon-ish) -->
+        <Style x:Key="GhostSmall" TargetType="Button" BasedOn="{StaticResource Ghost}">
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+
+        <!-- TextBox -->
+        <Style TargetType="TextBox">
+            <Setter Property="Foreground" Value="{StaticResource TextHi}" />
+            <Setter Property="CaretBrush" Value="{StaticResource Accent}" />
+            <Setter Property="Background" Value="{StaticResource CardAlt}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="9,7" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ComboBox (compact dark template) -->
+        <ControlTemplate x:Key="ComboToggle" TargetType="ToggleButton">
+            <Border Background="{StaticResource CardAlt}" BorderBrush="{StaticResource Border}"
+                    BorderThickness="1" CornerRadius="7" />
+        </ControlTemplate>
+        <Style TargetType="ComboBox">
+            <Setter Property="Foreground" Value="{StaticResource TextHi}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton Template="{StaticResource ComboToggle}" Focusable="False"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" />
+                            <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              Margin="10,0,28,0" VerticalAlignment="Center" IsHitTestVisible="False" />
+                            <Path Data="M0,0 L8,0 L4,5 Z" Fill="{StaticResource TextMid}"
+                                  HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" />
+                            <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
+                                   AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
+                                <Border Background="{StaticResource Card}" BorderBrush="{StaticResource Border}"
+                                        BorderThickness="1" CornerRadius="7" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                        Margin="0,4,0,0">
+                                    <ScrollViewer MaxHeight="220">
+                                        <ItemsPresenter />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="{StaticResource TextHi}" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="b" Background="Transparent" Padding="{TemplateBinding Padding}" CornerRadius="5">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#2F363C" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- CheckBox -->
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{StaticResource TextMid}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <!-- Sidebar nav item -->
+        <Style x:Key="Nav" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{StaticResource TextMid}" />
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Margin" Value="10,2" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="b" Background="Transparent" CornerRadius="8" Padding="12,9">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="3" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border x:Name="bar" Grid.Column="0" Width="3" CornerRadius="2"
+                                        Background="Transparent" HorizontalAlignment="Left" Margin="-4,2,0,2" />
+                                <ContentPresenter Grid.Column="1" VerticalAlignment="Center" Margin="8,0,0,0" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#262B30" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#2A3A38" />
+                                <Setter TargetName="bar" Property="Background" Value="{StaticResource Accent}" />
+                                <Setter Property="Foreground" Value="{StaticResource TextHi}" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextHi}" />
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+        <Style x:Key="SectionHint" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextDim}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,0,0,16" />
+        </Style>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextMid}" />
+            <Setter Property="FontSize" Value="12" />
             <Setter Property="Margin" Value="2,0,0,6" />
         </Style>
     </Window.Resources>
-    <Grid Margin="12">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
 
-        <!-- Stream URL + playback -->
-        <DockPanel Grid.Row="0" Margin="0,0,0,10" LastChildFill="True">
-            <Button DockPanel.Dock="Right" x:Name="StopButton" Content="Stop" Click="StopButton_Click" IsEnabled="False" />
-            <Button DockPanel.Dock="Right" x:Name="PlayButton" Content="Play" Click="PlayButton_Click" />
-            <TextBlock DockPanel.Dock="Left" Text="RTSP URL" Style="{StaticResource Label}" />
-            <TextBox x:Name="UrlBox" VerticalContentAlignment="Center" Padding="6,4" Text="rtsp://" />
-        </DockPanel>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="188" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
-        <!-- Display selection -->
-        <DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
-            <Button DockPanel.Dock="Right" x:Name="RefreshDisplaysButton" Content="↻" Click="RefreshDisplaysButton_Click"
-                    ToolTip="Re-scan displays" MinWidth="34" />
-            <TextBlock DockPanel.Dock="Left" Text="Stream on" Style="{StaticResource Label}" />
-            <ComboBox x:Name="MonitorCombo" VerticalContentAlignment="Center" Padding="6,4" />
-        </DockPanel>
+        <!-- Sidebar -->
+        <Border Grid.Column="0" Background="{StaticResource Sidebar}">
+            <DockPanel>
+                <!-- Brand -->
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="18,18,12,18">
+                    <Border Width="26" Height="26" CornerRadius="7" Background="{StaticResource Accent}">
+                        <Path Data="M0,0 L7,4 L0,8 Z" Fill="{StaticResource Ink}" Stretch="Uniform"
+                              Width="9" Height="9" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="Stream" Foreground="{StaticResource TextHi}" FontSize="15" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Margin="10,0,0,0" />
+                    <TextBlock Text="Orch." Foreground="{StaticResource Accent}" FontSize="15" FontWeight="SemiBold"
+                               VerticalAlignment="Center" />
+                </StackPanel>
 
-        <!-- Orchestration actions -->
-        <StackPanel Grid.Row="2" Margin="0,0,0,12">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                <Button x:Name="MoveButton" Content="Move stream ⇄" Click="MoveButton_Click"
-                        ToolTip="Send the stream to the other display (swaps with what's there)"
-                        IsEnabled="False" MinWidth="120" Margin="0,0,0,0" />
-                <Button x:Name="SwapButton" Content="Swap displays ⇄" Click="SwapButton_Click"
-                        ToolTip="Exchange the contents of the two displays"
-                        IsEnabled="False" MinWidth="120" />
-                <CheckBox x:Name="OnTopCheck" Content="Keep stream on top" Foreground="#CCCCCC"
-                          VerticalAlignment="Center" Margin="14,0,0,0" Click="OnTopCheck_Click" />
-            </StackPanel>
-            <TextBlock Foreground="#777" Margin="2,8,0,0"
-                       Text="Hotkeys:  Ctrl+Alt+S swap displays   •   Ctrl+Alt+M move stream   •   Ctrl+Alt+T toggle on-top" />
-        </StackPanel>
+                <!-- Footer: live status + version -->
+                <StackPanel DockPanel.Dock="Bottom" Margin="18,12,12,16">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Ellipse x:Name="LiveDot" Width="9" Height="9" Fill="{StaticResource TextDim}" VerticalAlignment="Center" />
+                        <TextBlock x:Name="LiveText" Text="Idle" Foreground="{StaticResource TextMid}" FontSize="12.5"
+                                   VerticalAlignment="Center" Margin="8,0,0,0" />
+                    </StackPanel>
+                    <TextBlock Text="v0.2.0" Foreground="{StaticResource TextDim}" FontSize="11" />
+                </StackPanel>
 
-        <!-- Detected windows header -->
-        <DockPanel Grid.Row="3" Margin="0,0,0,6" LastChildFill="True">
-            <Button DockPanel.Dock="Right" x:Name="RefreshWindowsButton" Content="Refresh" Click="RefreshWindowsButton_Click" />
-            <TextBlock Text="Presentation windows" Style="{StaticResource Header}" VerticalAlignment="Center" />
-        </DockPanel>
-
-        <!-- Detected windows list -->
-        <Border Grid.Row="4" BorderBrush="#333" BorderThickness="1" Background="#252526">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <ItemsControl x:Name="WindowList">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <DockPanel Margin="6,4" LastChildFill="True">
-                                <Button DockPanel.Dock="Right" Content="→ D2" Tag="1" Click="SendWindow_Click" MinWidth="48" />
-                                <Button DockPanel.Dock="Right" Content="→ D1" Tag="0" Click="SendWindow_Click" MinWidth="48" />
-                                <TextBlock Text="{Binding Title}" Foreground="#DDDDDD" VerticalAlignment="Center"
-                                           TextTrimming="CharacterEllipsis" />
-                            </DockPanel>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
+                <!-- Nav -->
+                <StackPanel DockPanel.Dock="Top" Margin="0,6,0,0">
+                    <RadioButton x:Name="NavStream" Style="{StaticResource Nav}" GroupName="nav" Content="Stream"
+                                 IsChecked="True" Checked="Nav_Checked" />
+                    <RadioButton x:Name="NavDisplays" Style="{StaticResource Nav}" GroupName="nav" Content="Displays"
+                                 Checked="Nav_Checked" />
+                    <RadioButton x:Name="NavPresentations" Style="{StaticResource Nav}" GroupName="nav" Content="Presentations"
+                                 Checked="Nav_Checked" />
+                </StackPanel>
+            </DockPanel>
         </Border>
 
-        <!-- Status -->
-        <TextBlock Grid.Row="5" x:Name="StatusText" Foreground="#9E9E9E" Margin="0,8,0,0" Text="Ready." />
+        <!-- Content -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="28,26,28,8">
+                <!-- Stream panel -->
+                <StackPanel x:Name="StreamPanel">
+                    <TextBlock Text="Stream" Style="{StaticResource SectionTitle}" />
+                    <TextBlock Text="Play a live RTSP feed. It opens fullscreen on the selected display."
+                               Style="{StaticResource SectionHint}" />
+                    <TextBlock Text="RTSP URL" Style="{StaticResource FieldLabel}" />
+                    <TextBox x:Name="UrlBox" Text="rtsp://" Margin="0,0,0,14" />
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="PlayButton" Style="{StaticResource AccentBtn}" Content="▶  Play"
+                                Click="PlayButton_Click" MinWidth="110" />
+                        <Button x:Name="StopButton" Style="{StaticResource Ghost}" Content="Stop"
+                                Click="StopButton_Click" IsEnabled="False" MinWidth="90" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Displays panel -->
+                <StackPanel x:Name="DisplaysPanel" Visibility="Collapsed">
+                    <TextBlock Text="Displays" Style="{StaticResource SectionTitle}" />
+                    <TextBlock Text="Choose where the stream shows, and move or swap it between screens."
+                               Style="{StaticResource SectionHint}" />
+                    <TextBlock Text="Stream on" Style="{StaticResource FieldLabel}" />
+                    <DockPanel Margin="0,0,0,16" LastChildFill="True">
+                        <Button DockPanel.Dock="Right" x:Name="RefreshDisplaysButton" Style="{StaticResource GhostSmall}"
+                                Content="↻" Click="RefreshDisplaysButton_Click" ToolTip="Re-scan displays" Margin="8,0,0,0" />
+                        <ComboBox x:Name="MonitorCombo">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Label}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </DockPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,18">
+                        <Button x:Name="MoveButton" Style="{StaticResource Ghost}" Content="Move stream  ⇄"
+                                Click="MoveButton_Click" IsEnabled="False" MinWidth="140"
+                                ToolTip="Send the stream to the other display (swaps with what's there)" />
+                        <Button x:Name="SwapButton" Style="{StaticResource Ghost}" Content="Swap displays  ⇄"
+                                Click="SwapButton_Click" IsEnabled="False" MinWidth="140"
+                                ToolTip="Exchange the contents of the two displays" />
+                    </StackPanel>
+                    <CheckBox x:Name="OnTopCheck" Content="Keep stream on top of other windows" Click="OnTopCheck_Click"
+                              Margin="0,0,0,18" />
+                    <Border Background="{StaticResource CardAlt}" CornerRadius="8" Padding="14,12">
+                        <StackPanel>
+                            <TextBlock Text="Hotkeys" Foreground="{StaticResource TextMid}" FontSize="12" FontWeight="SemiBold"
+                                       Margin="0,0,0,6" />
+                            <TextBlock Foreground="{StaticResource TextDim}" FontSize="12" TextWrapping="Wrap"
+                                       Text="Ctrl + Alt + S  —  swap displays&#x0a;Ctrl + Alt + M  —  move stream&#x0a;Ctrl + Alt + T  —  keep stream on top" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Presentations panel -->
+                <Grid x:Name="PresentationsPanel" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Presentations" Style="{StaticResource SectionTitle}" />
+                    <TextBlock Grid.Row="0" Margin="0,0,0,0" />
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,12">
+                        <Button x:Name="PrevButton" Style="{StaticResource GhostSmall}" Content="◀ Prev"
+                                Click="PrevButton_Click" IsEnabled="False" MinWidth="66"
+                                ToolTip="Cycle to the previous tracked presentation" />
+                        <Button x:Name="NextButton" Style="{StaticResource GhostSmall}" Content="Next ▶"
+                                Click="NextButton_Click" IsEnabled="False" MinWidth="66"
+                                ToolTip="Cycle to the next tracked presentation" />
+                        <Button x:Name="RestoreButton" Style="{StaticResource GhostSmall}" Content="Restore"
+                                Click="RestoreButton_Click" IsEnabled="False" MinWidth="72"
+                                ToolTip="Return moved windows to their original position" />
+                        <Button x:Name="RefreshWindowsButton" Style="{StaticResource GhostSmall}" Content="Refresh"
+                                Click="RefreshWindowsButton_Click" MinWidth="72" />
+                    </StackPanel>
+                    <Border Grid.Row="2" Background="{StaticResource CardAlt}" BorderBrush="{StaticResource Border}"
+                            BorderThickness="1" CornerRadius="8">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="4">
+                            <ItemsControl x:Name="WindowList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="Transparent" CornerRadius="6" Padding="8,2" Margin="2,1">
+                                            <DockPanel LastChildFill="True">
+                                                <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsTracked, Mode=TwoWay}"
+                                                          Click="TrackChanged_Click" Margin="0,0,10,0"
+                                                          ToolTip="Track for Prev/Next cycling" />
+                                                <Button DockPanel.Dock="Right" Style="{StaticResource GhostSmall}"
+                                                        Content="→ D2" Tag="1" Click="SendWindow_Click" MinWidth="46" Margin="0" />
+                                                <Button DockPanel.Dock="Right" Style="{StaticResource GhostSmall}"
+                                                        Content="→ D1" Tag="0" Click="SendWindow_Click" MinWidth="46" Margin="0,0,6,0" />
+                                                <TextBlock Text="{Binding Title}" Foreground="{StaticResource TextHi}"
+                                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="13" />
+                                            </DockPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <!-- Status bar -->
+            <Border Grid.Row="1" Background="{StaticResource CardAlt}" BorderThickness="0,1,0,0"
+                    BorderBrush="{StaticResource Border}">
+                <TextBlock x:Name="StatusText" Text="Ready." Foreground="{StaticResource TextMid}" FontSize="12.5"
+                           Margin="28,9" />
+            </Border>
+        </Grid>
     </Grid>
 </Window>

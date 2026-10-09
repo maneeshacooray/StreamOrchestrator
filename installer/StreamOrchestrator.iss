@@ -4,7 +4,10 @@
 ; Produces installer\Output\StreamOrchestrator-Setup.exe
 
 #define AppName "StreamOrchestrator"
-#define AppVersion "0.1.0"
+; AppVersion can be overridden from the command line: ISCC /DAppVersion=1.2.3 ...
+#ifndef AppVersion
+  #define AppVersion "0.2.0"
+#endif
 #define AppPublisher "StreamOrchestrator"
 #define AppExe "StreamOrchestrator.exe"
 
@@ -25,6 +28,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
 UninstallDisplayIcon={app}\{#AppExe}
+SetupIconFile=..\src\StreamOrchestrator\Assets\icon.ico
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Additional icons:"; Flags: unchecked
