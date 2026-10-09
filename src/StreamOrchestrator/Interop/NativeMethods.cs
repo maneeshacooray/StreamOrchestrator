@@ -26,6 +26,23 @@ internal static class NativeMethods
         public int dwFlags;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct POINT
+    {
+        public int X, Y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct WINDOWPLACEMENT
+    {
+        public int length;
+        public int flags;
+        public int showCmd;
+        public POINT ptMinPosition;
+        public POINT ptMaxPosition;
+        public RECT rcNormalPosition;
+    }
+
     public const int MONITORINFOF_PRIMARY = 0x1;
 
     // SetWindowPos
@@ -75,6 +92,12 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool SetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
 
     // Window enumeration
     public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);

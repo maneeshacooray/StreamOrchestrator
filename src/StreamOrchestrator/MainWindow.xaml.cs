@@ -1,6 +1,8 @@
+using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
+using System.Windows.Threading;
 using StreamOrchestrator.Config;
 using StreamOrchestrator.Display;
 using StreamOrchestrator.Input;
@@ -17,6 +19,8 @@ namespace StreamOrchestrator;
 public partial class MainWindow : Window
 {
     private readonly LayoutController _layout = new();
+    private readonly ObservableCollection<WindowItem> _windowItems = new();
+    private readonly DispatcherTimer _windowRefreshTimer = new() { Interval = TimeSpan.FromSeconds(2) };
     private StreamWindow? _stream;
     private StreamSurface? _streamSurface;
     private HotkeyService? _hotkeys;
@@ -25,15 +29,21 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        WindowList.ItemsSource = _windowItems;
+        _windowRefreshTimer.Tick += (_, _) => RefreshWindows();
+
         Loaded += (_, _) =>
         {
             LoadSettings();
             LoadMonitors();
             RefreshWindows();
+            _windowRefreshTimer.Start();
         };
         Closing += (_, _) =>
         {
+            _windowRefreshTimer.Stop();
             SaveSettings();
+            _layout.RestoreWindows();
             _hotkeys?.Dispose();
             _stream?.ShutDown();
         };
@@ -87,7 +97,37 @@ public partial class MainWindow : Window
 
     private void RefreshWindows()
     {
-        WindowList.ItemsSource = WindowEnumerator.GetWindows();
+        var live = WindowEnumerator.GetWindows();
+        var liveHandles = live.Select(w => w.Handle).ToHashSet();
+        var existing = _windowItems.ToDictionary(i => i.Handle);
+
+        foreach (var w in live)
+        {
+            if (existing.TryGetValue(w.Handle, out var item)) item.Title = w.Title;
+            else _windowItems.Add(new WindowItem(w.Handle, w.Title));
+        }
+        for (int i = _windowItems.Count - 1; i >= 0; i--)
+            if (!liveHandles.Contains(_windowItems[i].Handle))
+                _windowItems.RemoveAt(i);
+
+        UpdateTracked();
+    }
+
+    private void UpdateTracked()
+    {
+        var tracked = _windowItems.Where(i => i.IsTracked).Select(i => new WindowSurface(i.Handle, i.Title)).ToList();
+        _layout.SetTracked(tracked);
+        bool canCycle = tracked.Count > 0;
+        PrevButton.IsEnabled = canCycle;
+        NextButton.IsEnabled = canCycle;
+        RestoreButton.IsEnabled = WindowMover.HasRestorable;
+    }
+
+    /// <summary>The display presentations cycle onto: the one not showing the stream.</summary>
+    private int CycleTargetDisplay()
+    {
+        if (_layout.MonitorCount < 2) return 0;
+        return _layout.StreamDisplayIndex == 1 ? 0 : 1;
     }
 
     private MonitorInfo? SelectedMonitor => MonitorCombo.SelectedItem as MonitorInfo;
@@ -146,7 +186,7 @@ public partial class MainWindow : Window
 
     private void SendWindow_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not Button { DataContext: WindowInfo info, Tag: string tag }) return;
+        if (sender is not Button { DataContext: WindowItem item, Tag: string tag }) return;
         if (!int.TryParse(tag, out var displayIndex)) return;
 
         if (_layout.DisplayAt(displayIndex) is null)
@@ -155,8 +195,34 @@ public partial class MainWindow : Window
             return;
         }
 
-        _layout.AssignToDisplay(displayIndex, new WindowSurface(info.Handle, info.Title));
-        StatusText.Text = $"Sent \"{info.Title}\" to Display {displayIndex + 1}.";
+        _layout.AssignToDisplay(displayIndex, new WindowSurface(item.Handle, item.Title));
+        RestoreButton.IsEnabled = WindowMover.HasRestorable;
+        StatusText.Text = $"Sent \"{item.Title}\" to Display {displayIndex + 1}.";
+    }
+
+    private void TrackChanged_Click(object sender, RoutedEventArgs e) => UpdateTracked();
+
+    private void PrevButton_Click(object sender, RoutedEventArgs e) => Cycle(-1);
+
+    private void NextButton_Click(object sender, RoutedEventArgs e) => Cycle(+1);
+
+    private void Cycle(int direction)
+    {
+        var surface = _layout.CycleOnDisplay(CycleTargetDisplay(), direction);
+        if (surface is null)
+        {
+            StatusText.Text = "Track one or more presentation windows first.";
+            return;
+        }
+        RestoreButton.IsEnabled = WindowMover.HasRestorable;
+        StatusText.Text = $"Showing \"{surface.Name}\" on Display {CycleTargetDisplay() + 1}.";
+    }
+
+    private void RestoreButton_Click(object sender, RoutedEventArgs e)
+    {
+        _layout.RestoreWindows();
+        RestoreButton.IsEnabled = false;
+        StatusText.Text = "Restored moved windows.";
     }
 
     private void OnTopCheck_Click(object sender, RoutedEventArgs e) => ApplyAlwaysOnTop();

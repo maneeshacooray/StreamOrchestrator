@@ -1,4 +1,5 @@
 using StreamOrchestrator.Display;
+using StreamOrchestrator.Windows;
 
 namespace StreamOrchestrator.Orchestration;
 
@@ -11,9 +12,16 @@ public sealed class LayoutController
     private readonly ISurface?[] _slots = new ISurface?[2];
     private IReadOnlyList<MonitorInfo> _monitors = Array.Empty<MonitorInfo>();
 
+    // Ordered presentations the user is cycling through, and the current position.
+    private readonly List<WindowSurface> _tracked = new();
+    private int _cycleIndex = -1;
+
     public LayoutController() => RefreshMonitors();
 
     public int MonitorCount => _monitors.Count;
+
+    /// <summary>Index of the display currently showing the stream, or -1.</summary>
+    public int StreamDisplayIndex => Array.FindIndex(_slots, s => s is StreamSurface);
 
     public void RefreshMonitors() => _monitors = MonitorService.GetMonitors();
 
@@ -57,4 +65,31 @@ public sealed class LayoutController
 
     public MonitorInfo? DisplayAt(int index) =>
         index >= 0 && index < _monitors.Count ? _monitors[index] : null;
+
+    /// <summary>Sets the ordered list of presentations to cycle through.</summary>
+    public void SetTracked(IReadOnlyList<WindowSurface> tracked)
+    {
+        _tracked.Clear();
+        _tracked.AddRange(tracked);
+        if (_cycleIndex >= _tracked.Count) _cycleIndex = _tracked.Count - 1;
+    }
+
+    public int TrackedCount => _tracked.Count;
+
+    /// <summary>Shows the next/previous tracked presentation on the given display.</summary>
+    public WindowSurface? CycleOnDisplay(int displayIndex, int direction)
+    {
+        if (_tracked.Count == 0 || displayIndex < 0 || displayIndex >= _monitors.Count) return null;
+
+        _cycleIndex = _cycleIndex < 0
+            ? (direction >= 0 ? 0 : _tracked.Count - 1)
+            : ((_cycleIndex + direction) % _tracked.Count + _tracked.Count) % _tracked.Count;
+
+        var surface = _tracked[_cycleIndex];
+        AssignToDisplay(displayIndex, surface);
+        return surface;
+    }
+
+    /// <summary>Restores every moved presentation window to where it was before.</summary>
+    public void RestoreWindows() => WindowMover.RestoreAll();
 }
