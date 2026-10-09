@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:StreamOrchestrator"
         mc:Ignorable="d"
         Title="StreamOrchestrator" Height="560" Width="640"
+        Icon="Assets/icon.ico"
         Background="#1E1E1E">
     <Window.Resources>
         <Style TargetType="Button">

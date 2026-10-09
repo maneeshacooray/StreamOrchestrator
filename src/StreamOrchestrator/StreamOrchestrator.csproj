@@ -13,9 +13,14 @@
     <SelfContained>false</SelfContained>
     <AssemblyTitle>StreamOrchestrator</AssemblyTitle>
     <Product>StreamOrchestrator</Product>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\icon.ico" />
+  </ItemGroup>
 
   <!-- Ship the native mpv engine next to the executable. The glob tolerates an
        empty libs/ folder before the dll is fetched. -->
