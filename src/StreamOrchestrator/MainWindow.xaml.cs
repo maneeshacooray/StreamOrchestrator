@@ -184,6 +184,13 @@ public partial class MainWindow : Window
         _stream = new StreamWindow();
         _streamSurface = new StreamSurface(_stream);
         _stream.SetAlwaysOnTop(OnTopCheck.IsChecked == true);
+        _stream.StatusChanged += status => StatusText.Text = status switch
+        {
+            Player.PlaybackStatus.Live => "● Live",
+            Player.PlaybackStatus.Reconnecting => "Reconnecting…",
+            Player.PlaybackStatus.Ended => "Stream ended.",
+            _ => StatusText.Text,
+        };
         _stream.Closed += (_, _) =>
         {
             _stream = null;
