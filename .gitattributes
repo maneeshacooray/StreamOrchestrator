@@ -1,0 +1,12 @@
+# Normalize text line endings; let Git decide per-file by default.
+* text=auto
+
+# Binary assets — never apply line-ending conversion.
+*.ico binary
+*.dll binary
+*.png binary
+*.exe binary
+*.7z binary
+
+# Scripts that must stay CRLF/LF-stable
+*.ps1 text eol=crlf
