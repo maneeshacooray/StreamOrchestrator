@@ -68,7 +68,12 @@
 
         <!-- Detected windows header -->
         <DockPanel Grid.Row="3" Margin="0,0,0,6" LastChildFill="True">
-            <Button DockPanel.Dock="Right" x:Name="RefreshWindowsButton" Content="Refresh" Click="RefreshWindowsButton_Click" />
+            <Button DockPanel.Dock="Right" x:Name="RestoreButton" Content="Restore" Click="RestoreButton_Click"
+                    ToolTip="Return moved windows to their original position" IsEnabled="False" MinWidth="64" />
+            <Button DockPanel.Dock="Right" x:Name="NextButton" Content="Next ▶" Click="NextButton_Click"
+                    ToolTip="Cycle to the next tracked presentation" IsEnabled="False" MinWidth="60" />
+            <Button DockPanel.Dock="Right" x:Name="PrevButton" Content="◀ Prev" Click="PrevButton_Click"
+                    ToolTip="Cycle to the previous tracked presentation" IsEnabled="False" MinWidth="60" />
             <TextBlock Text="Presentation windows" Style="{StaticResource Header}" VerticalAlignment="Center" />
         </DockPanel>
 
@@ -79,6 +84,9 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <DockPanel Margin="6,4" LastChildFill="True">
+                                <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsTracked, Mode=TwoWay}"
+                                          Click="TrackChanged_Click" VerticalAlignment="Center" Margin="0,0,8,0"
+                                          ToolTip="Track for Prev/Next cycling" />
                                 <Button DockPanel.Dock="Right" Content="→ D2" Tag="1" Click="SendWindow_Click" MinWidth="48" />
                                 <Button DockPanel.Dock="Right" Content="→ D1" Tag="0" Click="SendWindow_Click" MinWidth="48" />
                                 <TextBlock Text="{Binding Title}" Foreground="#DDDDDD" VerticalAlignment="Center"
