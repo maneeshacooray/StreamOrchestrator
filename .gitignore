@@ -1,0 +1,36 @@
+# .NET build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / VS / VS Code
+.vs/
+.idea/
+.vscode/
+
+# Publish output
+publish/
+dist/
+
+# Installer output (compiled Setup.exe)
+installer/Output/
+
+# NuGet
+*.nupkg
+packages/
+.nuget/
+
+# OS cruft
+Thumbs.db
+desktop.ini
+
+# App local settings written at runtime
+settings.local.json
