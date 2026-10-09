@@ -1,46 +1,37 @@
 using System.Windows;
-using StreamOrchestrator.Player;
+using StreamOrchestrator.Display;
 
 namespace StreamOrchestrator;
 
 /// <summary>
-/// Interaction logic for MainWindow.xaml. Hosts the libmpv video surface and drives
-/// play/stop of the RTSP stream.
+/// Control panel: owns the stream URL, display selection, and the borderless <see cref="StreamWindow"/>
+/// that renders the live feed. Playback and window orchestration are driven from here.
 /// </summary>
 public partial class MainWindow : Window
 {
-    private readonly MpvHost _host = new();
-    private readonly MpvPlayer _player = new();
+    private StreamWindow? _stream;
 
     public MainWindow()
     {
         InitializeComponent();
-
-        _host.HostReady += OnHostReady;
-        VideoContainer.Child = _host;
-
-        Closing += (_, _) =>
-        {
-            _player.Dispose();
-        };
+        Loaded += (_, _) => LoadMonitors();
+        Closing += (_, _) => _stream?.ShutDown();
     }
 
-    private void OnHostReady(IntPtr hwnd)
+    private void LoadMonitors()
     {
-        // Runs on the UI thread as the native child window is created.
-        Dispatcher.Invoke(() =>
-        {
-            try
-            {
-                _player.Initialize(hwnd);
-                StatusText.Text = "Player ready. Enter an RTSP URL and press Play.";
-            }
-            catch (Exception ex)
-            {
-                StatusText.Text = "Failed to initialize player: " + ex.Message;
-            }
-        });
+        var monitors = MonitorService.GetMonitors();
+        MonitorCombo.ItemsSource = monitors;
+        MonitorCombo.DisplayMemberPath = nameof(MonitorInfo.Label);
+        if (monitors.Count > 0) MonitorCombo.SelectedIndex = 0;
+
+        MoveButton.IsEnabled = monitors.Count >= 2 && _stream is not null;
+        StatusText.Text = monitors.Count >= 2
+            ? $"{monitors.Count} displays detected."
+            : "Single display detected — Move is disabled.";
     }
+
+    private MonitorInfo? SelectedMonitor => MonitorCombo.SelectedItem as MonitorInfo;
 
     private void PlayButton_Click(object sender, RoutedEventArgs e)
     {
@@ -51,11 +42,22 @@ public partial class MainWindow : Window
             return;
         }
 
+        var monitor = SelectedMonitor ?? MonitorService.GetMonitors().FirstOrDefault();
+        if (monitor is null)
+        {
+            StatusText.Text = "No display available.";
+            return;
+        }
+
         try
         {
-            _player.Open(url);
+            EnsureStreamWindow();
+            _stream!.ShowOnMonitor(monitor);
+            _stream.Open(url);
+
             StopButton.IsEnabled = true;
-            StatusText.Text = "Playing: " + url;
+            MoveButton.IsEnabled = MonitorService.GetMonitors().Count >= 2;
+            StatusText.Text = $"Playing on {monitor.Label}";
         }
         catch (Exception ex)
         {
@@ -65,15 +67,36 @@ public partial class MainWindow : Window
 
     private void StopButton_Click(object sender, RoutedEventArgs e)
     {
-        try
+        _stream?.Stop();
+        StopButton.IsEnabled = false;
+        StatusText.Text = "Stopped.";
+    }
+
+    private void MoveButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_stream is null) return;
+        var moved = _stream.MoveToOtherDisplay();
+        if (moved is not null)
         {
-            _player.Stop();
+            // Reflect the new display in the combo.
+            var match = (MonitorCombo.ItemsSource as IEnumerable<MonitorInfo>)?
+                .FirstOrDefault(m => m.Handle == moved.Handle);
+            if (match is not null) MonitorCombo.SelectedItem = match;
+            StatusText.Text = $"Moved to {moved.Label}";
+        }
+    }
+
+    private void RefreshButton_Click(object sender, RoutedEventArgs e) => LoadMonitors();
+
+    private void EnsureStreamWindow()
+    {
+        if (_stream is not null) return;
+        _stream = new StreamWindow { Owner = null };
+        _stream.Closed += (_, _) =>
+        {
+            _stream = null;
             StopButton.IsEnabled = false;
-            StatusText.Text = "Stopped.";
-        }
-        catch (Exception ex)
-        {
-            StatusText.Text = "Stop failed: " + ex.Message;
-        }
+            MoveButton.IsEnabled = false;
+        };
     }
 }
