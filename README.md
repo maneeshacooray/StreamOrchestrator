@@ -26,6 +26,7 @@ across a **dual-monitor** setup alongside presentation windows.
 ## Build & run
 
 ```powershell
+./scripts/fetch-libmpv.ps1          # one-time: download the native libmpv engine into libs/
 dotnet build
 dotnet run --project src/StreamOrchestrator
 ```

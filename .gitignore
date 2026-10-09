@@ -34,3 +34,6 @@ desktop.ini
 
 # App local settings written at runtime
 settings.local.json
+
+# Native libmpv engine (~120 MB) is fetched via scripts/fetch-libmpv.ps1, not committed
+libs/*.dll
