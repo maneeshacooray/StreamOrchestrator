@@ -14,6 +14,31 @@ internal static class MpvInterop
     // mpv_format values from client.h
     public const int MPV_FORMAT_INT64 = 4;
 
+    // mpv_event_id values from client.h
+    public const int MPV_EVENT_SHUTDOWN = 1;
+    public const int MPV_EVENT_FILE_LOADED = 8;
+    public const int MPV_EVENT_END_FILE = 7;
+
+    // mpv_end_file_reason values
+    public const int MPV_END_FILE_REASON_EOF = 0;
+    public const int MPV_END_FILE_REASON_ERROR = 4;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MpvEvent
+    {
+        public int event_id;
+        public int error;
+        public ulong reply_userdata;
+        public IntPtr data;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MpvEventEndFile
+    {
+        public int reason;
+        public int error;
+    }
+
     [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
     public static extern IntPtr mpv_create();
 
@@ -37,6 +62,9 @@ internal static class MpvInterop
 
     [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr mpv_error_string(int error);
+
+    [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
+    public static extern IntPtr mpv_wait_event(IntPtr ctx, double timeout);
 
     // ---- Managed helpers -------------------------------------------------
 

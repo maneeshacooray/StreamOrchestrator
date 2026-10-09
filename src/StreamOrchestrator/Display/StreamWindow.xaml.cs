@@ -16,10 +16,14 @@ public partial class StreamWindow : Window
     private bool _playerReady;
     private string? _pendingUrl;
 
+    /// <summary>Raised on the UI thread when playback status changes (live / reconnecting / ended).</summary>
+    public event Action<PlaybackStatus>? StatusChanged;
+
     public StreamWindow()
     {
         InitializeComponent();
         _host.HostReady += OnHostReady;
+        _player.StatusChanged += s => Dispatcher.BeginInvoke(() => StatusChanged?.Invoke(s));
         VideoContainer.Children.Add(_host);
     }
 
