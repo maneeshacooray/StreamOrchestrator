@@ -1,6 +1,10 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Interop;
+using StreamOrchestrator.Config;
 using StreamOrchestrator.Display;
+using StreamOrchestrator.Input;
+using StreamOrchestrator.Interop;
 using StreamOrchestrator.Orchestration;
 using StreamOrchestrator.Windows;
 
@@ -15,16 +19,50 @@ public partial class MainWindow : Window
     private readonly LayoutController _layout = new();
     private StreamWindow? _stream;
     private StreamSurface? _streamSurface;
+    private HotkeyService? _hotkeys;
+    private AppSettings _settings = new();
 
     public MainWindow()
     {
         InitializeComponent();
         Loaded += (_, _) =>
         {
+            LoadSettings();
             LoadMonitors();
             RefreshWindows();
         };
-        Closing += (_, _) => _stream?.ShutDown();
+        Closing += (_, _) =>
+        {
+            SaveSettings();
+            _hotkeys?.Dispose();
+            _stream?.ShutDown();
+        };
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        var hwnd = new WindowInteropHelper(this).Handle;
+        _hotkeys = new HotkeyService(hwnd);
+        uint ctrlAlt = NativeMethods.MOD_CONTROL | NativeMethods.MOD_ALT;
+        _hotkeys.Register(ctrlAlt, 0x53 /* S */, () => SwapButton_Click(this, null!));
+        _hotkeys.Register(ctrlAlt, 0x4D /* M */, () => MoveButton_Click(this, null!));
+        _hotkeys.Register(ctrlAlt, 0x54 /* T */, ToggleAlwaysOnTop);
+    }
+
+    private void LoadSettings()
+    {
+        _settings = SettingsService.Load();
+        if (!string.IsNullOrWhiteSpace(_settings.LastUrl)) UrlBox.Text = _settings.LastUrl;
+        OnTopCheck.IsChecked = _settings.StreamAlwaysOnTop;
+    }
+
+    private void SaveSettings()
+    {
+        _settings.LastUrl = UrlBox.Text?.Trim();
+        _settings.LastDisplayIndex = MonitorCombo.SelectedIndex;
+        _settings.StreamAlwaysOnTop = OnTopCheck.IsChecked == true;
+        SettingsService.Save(_settings);
     }
 
     private void LoadMonitors()
@@ -33,7 +71,11 @@ public partial class MainWindow : Window
         var monitors = MonitorService.GetMonitors();
         MonitorCombo.ItemsSource = monitors;
         MonitorCombo.DisplayMemberPath = nameof(MonitorInfo.Label);
-        if (monitors.Count > 0 && MonitorCombo.SelectedIndex < 0) MonitorCombo.SelectedIndex = 0;
+        if (monitors.Count > 0 && MonitorCombo.SelectedIndex < 0)
+        {
+            var idx = _settings.LastDisplayIndex;
+            MonitorCombo.SelectedIndex = idx >= 0 && idx < monitors.Count ? idx : 0;
+        }
 
         bool multi = monitors.Count >= 2;
         SwapButton.IsEnabled = multi;
@@ -117,6 +159,21 @@ public partial class MainWindow : Window
         StatusText.Text = $"Sent \"{info.Title}\" to Display {displayIndex + 1}.";
     }
 
+    private void OnTopCheck_Click(object sender, RoutedEventArgs e) => ApplyAlwaysOnTop();
+
+    private void ToggleAlwaysOnTop()
+    {
+        OnTopCheck.IsChecked = OnTopCheck.IsChecked != true;
+        ApplyAlwaysOnTop();
+    }
+
+    private void ApplyAlwaysOnTop()
+    {
+        bool onTop = OnTopCheck.IsChecked == true;
+        _stream?.SetAlwaysOnTop(onTop);
+        StatusText.Text = onTop ? "Stream kept on top." : "Stream on-top disabled.";
+    }
+
     private void RefreshDisplaysButton_Click(object sender, RoutedEventArgs e) => LoadMonitors();
 
     private void RefreshWindowsButton_Click(object sender, RoutedEventArgs e) => RefreshWindows();
@@ -126,6 +183,7 @@ public partial class MainWindow : Window
         if (_stream is not null) return;
         _stream = new StreamWindow();
         _streamSurface = new StreamSurface(_stream);
+        _stream.SetAlwaysOnTop(OnTopCheck.IsChecked == true);
         _stream.Closed += (_, _) =>
         {
             _stream = null;

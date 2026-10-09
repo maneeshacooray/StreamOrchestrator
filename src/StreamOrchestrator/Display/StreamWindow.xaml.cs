@@ -61,6 +61,9 @@ public partial class StreamWindow : Window
             NativeMethods.SWP_SHOWWINDOW | NativeMethods.SWP_FRAMECHANGED);
     }
 
+    /// <summary>Keeps the stream above other windows on its monitor (e.g. over a presentation).</summary>
+    public void SetAlwaysOnTop(bool onTop) => Topmost = onTop;
+
     public void ShutDown()
     {
         _player.Dispose();
