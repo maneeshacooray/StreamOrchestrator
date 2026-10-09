@@ -26,14 +26,29 @@ across a **dual-monitor** setup alongside presentation windows.
 ## Build & run
 
 ```powershell
+./scripts/fetch-libmpv.ps1          # one-time: download the native libmpv engine into libs/
 dotnet build
 dotnet run --project src/StreamOrchestrator
 ```
 
 ## Distribution
 
-Self-contained publish (no .NET/mpv needed on the target machine), packaged as a `Setup.exe`
-via Inno Setup. See `installer/`.
+Produce a `Setup.exe` you can hand to other people. The build is **self-contained** — recipients
+need no .NET, VLC, or mpv installed.
+
+```powershell
+./scripts/publish.ps1                                   # self-contained build into publish/
+& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" `  # compile the installer
+    installer/StreamOrchestrator.iss
+# -> installer/Output/StreamOrchestrator-Setup.exe
+```
+
+Requires [Inno Setup 6](https://jrsoftware.org/isinfo.php) (`winget install JRSoftware.InnoSetup`).
+
+> The installer is **unsigned**, so recipients may see a one-time Windows SmartScreen
+> "unknown publisher" prompt (More info → Run anyway). To remove it, sign both
+> `StreamOrchestrator.exe` and the generated `Setup.exe` with a code-signing certificate
+> (`signtool sign /fd SHA256 /f cert.pfx ...`), or add Inno's `SignTool` directive.
 
 ## Development workflow
 
