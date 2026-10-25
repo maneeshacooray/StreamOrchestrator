@@ -3,8 +3,11 @@ using StreamOrchestrator.Interop;
 
 namespace StreamOrchestrator.Display;
 
-/// <summary>A connected display and its physical-pixel bounds.</summary>
-public sealed record MonitorInfo(int Index, int Left, int Top, int Width, int Height, bool IsPrimary, IntPtr Handle)
+/// <summary>A connected display with its full and work-area physical-pixel bounds.</summary>
+public sealed record MonitorInfo(
+    int Index, int Left, int Top, int Width, int Height,
+    int WorkLeft, int WorkTop, int WorkWidth, int WorkHeight,
+    bool IsPrimary, IntPtr Handle)
 {
     public string Label =>
         $"Display {Index + 1}{(IsPrimary ? " (primary)" : "")} — {Width}×{Height}";
@@ -15,26 +18,29 @@ public static class MonitorService
 {
     public static IReadOnlyList<MonitorInfo> GetMonitors()
     {
-        var result = new List<(IntPtr h, NativeMethods.RECT r)>();
+        var result = new List<(IntPtr h, NativeMethods.RECT r, NativeMethods.RECT work)>();
 
         NativeMethods.EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero,
             (IntPtr hMon, IntPtr _, ref NativeMethods.RECT _, IntPtr _) =>
             {
                 var mi = new NativeMethods.MONITORINFO { cbSize = Marshal.SizeOf<NativeMethods.MONITORINFO>() };
                 if (NativeMethods.GetMonitorInfo(hMon, ref mi))
-                    result.Add((hMon, mi.rcMonitor));
+                    result.Add((hMon, mi.rcMonitor, mi.rcWork));
                 return true; // continue enumeration
             }, IntPtr.Zero);
 
         // Primary first, then left-to-right, for stable display numbering.
         var ordered = result
-            .Select(x => new { x.h, x.r, primary = IsPrimary(x.h) })
+            .Select(x => new { x.h, x.r, x.work, primary = IsPrimary(x.h) })
             .OrderByDescending(x => x.primary)
             .ThenBy(x => x.r.Left)
             .ToList();
 
         return ordered
-            .Select((x, i) => new MonitorInfo(i, x.r.Left, x.r.Top, x.r.Width, x.r.Height, x.primary, x.h))
+            .Select((x, i) => new MonitorInfo(
+                i, x.r.Left, x.r.Top, x.r.Width, x.r.Height,
+                x.work.Left, x.work.Top, x.work.Width, x.work.Height,
+                x.primary, x.h))
             .ToList();
     }
 

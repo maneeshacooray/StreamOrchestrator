@@ -8,6 +8,7 @@
         Title="StreamOrchestrator" Height="560" Width="760" MinWidth="680" MinHeight="480"
         Icon="Assets/icon.ico"
         Background="#16181A"
+        PreviewKeyDown="Window_PreviewKeyDown"
         FontFamily="Segoe UI" TextOptions.TextFormattingMode="Ideal">
 
     <Window.Resources>
@@ -204,6 +205,34 @@
             </Setter>
         </Style>
 
+        <!-- Sidebar icon toggle (always-on-top controls) -->
+        <Style x:Key="SidebarToggle" TargetType="ToggleButton">
+            <Setter Property="Foreground" Value="{StaticResource TextMid}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="9">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#262B30" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="{StaticResource Accent}" />
+                                <Setter Property="Foreground" Value="{StaticResource Ink}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="SectionTitle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource TextHi}" />
             <Setter Property="FontSize" Value="18" />
@@ -244,14 +273,31 @@
                                VerticalAlignment="Center" />
                 </StackPanel>
 
-                <!-- Footer: live status + version -->
+                <!-- Footer: keep-on-top toggles + live status + version -->
                 <StackPanel DockPanel.Dock="Bottom" Margin="18,12,12,16">
+                    <TextBlock Text="KEEP ON TOP" Foreground="{StaticResource TextDim}" FontSize="10.5"
+                               FontWeight="SemiBold" Margin="2,0,0,8" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <ToggleButton x:Name="PinPanelToggle" Style="{StaticResource SidebarToggle}"
+                                      Click="PinPanelToggle_Click" ToolTip="Pin control panel on top">
+                            <Path Stretch="Uniform" Width="19" Height="19"
+                                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+                                  Data="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z" />
+                        </ToggleButton>
+                        <ToggleButton x:Name="StreamOnTopToggle" Style="{StaticResource SidebarToggle}"
+                                      Click="StreamOnTopToggle_Click" ToolTip="Keep stream on top">
+                            <Path Stretch="Uniform" Width="20" Height="20"
+                                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+                                  Data="M3,13H5V11H3V13M3,17H5V15H3V17M5,21V19H3A2,2 0 0,0 5,21M3,9H5V7H3V9M17,3H7A2,2 0 0,0 5,5H19A2,2 0 0,0 17,3M19,17H21V15H19V17M19,13H21V11H19V13M9,21H11V19H9V21M19,21A2,2 0 0,0 21,19H19V21M19,9H21V7H19V9M13,21H15V19H13V21M19,5V3A2,2 0 0,0 21,5H19M7,17H17V7H7V17Z" />
+                        </ToggleButton>
+                    </StackPanel>
+
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <Ellipse x:Name="LiveDot" Width="9" Height="9" Fill="{StaticResource TextDim}" VerticalAlignment="Center" />
                         <TextBlock x:Name="LiveText" Text="Idle" Foreground="{StaticResource TextMid}" FontSize="12.5"
                                    VerticalAlignment="Center" Margin="8,0,0,0" />
                     </StackPanel>
-                    <TextBlock Text="v0.2.0" Foreground="{StaticResource TextDim}" FontSize="11" />
+                    <TextBlock Text="v0.3.0" Foreground="{StaticResource TextDim}" FontSize="11" />
                 </StackPanel>
 
                 <!-- Nav -->
@@ -261,6 +307,8 @@
                     <RadioButton x:Name="NavDisplays" Style="{StaticResource Nav}" GroupName="nav" Content="Displays"
                                  Checked="Nav_Checked" />
                     <RadioButton x:Name="NavPresentations" Style="{StaticResource Nav}" GroupName="nav" Content="Presentations"
+                                 Checked="Nav_Checked" />
+                    <RadioButton x:Name="NavHotkeys" Style="{StaticResource Nav}" GroupName="nav" Content="Hotkeys"
                                  Checked="Nav_Checked" />
                 </StackPanel>
             </DockPanel>
@@ -314,16 +362,26 @@
                                 Click="SwapButton_Click" IsEnabled="False" MinWidth="140"
                                 ToolTip="Exchange the contents of the two displays" />
                     </StackPanel>
-                    <CheckBox x:Name="OnTopCheck" Content="Keep stream on top of other windows" Click="OnTopCheck_Click"
-                              Margin="0,0,0,18" />
-                    <Border Background="{StaticResource CardAlt}" CornerRadius="8" Padding="14,12">
+                    <Border Background="{StaticResource CardAlt}" CornerRadius="8" Padding="14,12" Margin="0,16,0,16">
                         <StackPanel>
-                            <TextBlock Text="Hotkeys" Foreground="{StaticResource TextMid}" FontSize="12" FontWeight="SemiBold"
-                                       Margin="0,0,0,6" />
-                            <TextBlock Foreground="{StaticResource TextDim}" FontSize="12" TextWrapping="Wrap"
-                                       Text="Ctrl + Alt + S  —  swap displays&#x0a;Ctrl + Alt + M  —  move stream&#x0a;Ctrl + Alt + T  —  keep stream on top" />
+                            <TextBlock Text="Control panel" Foreground="{StaticResource TextMid}" FontSize="12"
+                                       FontWeight="SemiBold" Margin="0,0,0,10" />
+                            <DockPanel LastChildFill="True">
+                                <TextBlock DockPanel.Dock="Left" Text="Show on" Foreground="{StaticResource TextMid}"
+                                           FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                <ComboBox x:Name="AppMonitorCombo" SelectionChanged="AppMonitorCombo_SelectionChanged">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Label}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </DockPanel>
                         </StackPanel>
                     </Border>
+
+                    <TextBlock Foreground="{StaticResource TextDim}" FontSize="12" TextWrapping="Wrap"
+                               Text="Tip: customise keyboard shortcuts in the Hotkeys tab." />
                 </StackPanel>
 
                 <!-- Presentations panel -->
@@ -331,11 +389,35 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Text="Presentations" Style="{StaticResource SectionTitle}" />
-                    <TextBlock Grid.Row="0" Margin="0,0,0,0" />
-                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,12">
+
+                    <!-- Filter: presentations-only toggle + title search -->
+                    <DockPanel Grid.Row="1" Margin="0,8,0,8" LastChildFill="True">
+                        <CheckBox DockPanel.Dock="Left" x:Name="PresOnlyCheck" Content="Presentations only"
+                                  IsChecked="True" Click="PresOnlyCheck_Click" Margin="0,0,12,0"
+                                  ToolTip="Show only slide apps, PDF/image viewers and browsers" />
+                        <Grid>
+                            <TextBox x:Name="SearchBox" TextChanged="SearchBox_TextChanged" Padding="9,6" />
+                            <TextBlock Text="Search windows…" Foreground="{StaticResource TextDim}" FontSize="12.5"
+                                       Margin="11,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </DockPanel>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,12">
                         <Button x:Name="PrevButton" Style="{StaticResource GhostSmall}" Content="◀ Prev"
                                 Click="PrevButton_Click" IsEnabled="False" MinWidth="66"
                                 ToolTip="Cycle to the previous tracked presentation" />
@@ -348,8 +430,23 @@
                         <Button x:Name="RefreshWindowsButton" Style="{StaticResource GhostSmall}" Content="Refresh"
                                 Click="RefreshWindowsButton_Click" MinWidth="72" />
                     </StackPanel>
-                    <Border Grid.Row="2" Background="{StaticResource CardAlt}" BorderBrush="{StaticResource Border}"
+                    <Border Grid.Row="3" Background="{StaticResource CardAlt}" BorderBrush="{StaticResource Border}"
                             BorderThickness="1" CornerRadius="8">
+                      <Grid>
+                        <TextBlock Text="No presentation windows found.&#x0a;Uncheck “Presentations only” or clear the search to see all windows."
+                                   Foreground="{StaticResource TextDim}" FontSize="12.5" TextAlignment="Center"
+                                   TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasItems, ElementName=WindowList}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                         <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="4">
                             <ItemsControl x:Name="WindowList">
                                 <ItemsControl.ItemTemplate>
@@ -371,8 +468,49 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </ScrollViewer>
+                      </Grid>
                     </Border>
                 </Grid>
+
+                <!-- Hotkeys panel -->
+                <StackPanel x:Name="HotkeysPanel" Visibility="Collapsed">
+                    <TextBlock Text="Hotkeys" Style="{StaticResource SectionTitle}" />
+                    <TextBlock Text="Global shortcuts that work even while the stream is fullscreen. Click Set, then press a combo (with Ctrl / Alt / Shift / Win)."
+                               Style="{StaticResource SectionHint}" />
+                    <Border Background="{StaticResource CardAlt}" BorderBrush="{StaticResource Border}"
+                            BorderThickness="1" CornerRadius="8">
+                        <ItemsControl x:Name="HotkeyList" Margin="4">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <DockPanel LastChildFill="True" Margin="8,7">
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource GhostSmall}" Content="Clear"
+                                                Click="ClearHotkey_Click" MinWidth="56" Margin="6,0,0,0" />
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource GhostSmall}" Content="Set"
+                                                Click="SetHotkey_Click" MinWidth="56" />
+                                        <Border DockPanel.Dock="Right" Background="#16181A" BorderThickness="1"
+                                                CornerRadius="6" Padding="10,5" MinWidth="175" Margin="10,0,10,0">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="BorderBrush" Value="{StaticResource Border}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Capturing}" Value="True">
+                                                            <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding Display}" Foreground="{StaticResource TextHi}"
+                                                       FontSize="12.5" VerticalAlignment="Center" TextAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </Border>
+                                        <TextBlock Text="{Binding Name}" Foreground="{StaticResource TextHi}" FontSize="13"
+                                                   VerticalAlignment="Center" />
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Border>
+                </StackPanel>
             </Grid>
 
             <!-- Status bar -->

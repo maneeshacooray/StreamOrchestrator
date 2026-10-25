@@ -6,7 +6,7 @@
 #define AppName "StreamOrchestrator"
 ; AppVersion can be overridden from the command line: ISCC /DAppVersion=1.2.3 ...
 #ifndef AppVersion
-  #define AppVersion "0.2.0"
+  #define AppVersion "0.3.0"
 #endif
 #define AppPublisher "StreamOrchestrator"
 #define AppExe "StreamOrchestrator.exe"
