@@ -10,6 +10,8 @@ public sealed class AppSettings
     public int LastDisplayIndex { get; set; }
     public bool StreamAlwaysOnTop { get; set; }
     public bool PresentationsOnly { get; set; } = true;
+    public bool PinControlPanelOnTop { get; set; }
+    public int AppDisplayIndex { get; set; } = -1;
 }
 
 /// <summary>Loads/saves <see cref="AppSettings"/> as JSON under %LOCALAPPDATA%.</summary>

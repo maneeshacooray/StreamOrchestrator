@@ -316,6 +316,26 @@
                     </StackPanel>
                     <CheckBox x:Name="OnTopCheck" Content="Keep stream on top of other windows" Click="OnTopCheck_Click"
                               Margin="0,0,0,18" />
+                    <Border Background="{StaticResource CardAlt}" CornerRadius="8" Padding="14,12" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="Control panel" Foreground="{StaticResource TextMid}" FontSize="12"
+                                       FontWeight="SemiBold" Margin="0,0,0,10" />
+                            <CheckBox x:Name="PinPanelCheck" Content="Pin this window on top" Click="PinPanelCheck_Click"
+                                      Margin="0,0,0,12" />
+                            <DockPanel LastChildFill="True">
+                                <TextBlock DockPanel.Dock="Left" Text="Show on" Foreground="{StaticResource TextMid}"
+                                           FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                <ComboBox x:Name="AppMonitorCombo" SelectionChanged="AppMonitorCombo_SelectionChanged">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Label}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
                     <Border Background="{StaticResource CardAlt}" CornerRadius="8" Padding="14,12">
                         <StackPanel>
                             <TextBlock Text="Hotkeys" Foreground="{StaticResource TextMid}" FontSize="12" FontWeight="SemiBold"
