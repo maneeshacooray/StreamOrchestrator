@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using StreamOrchestrator.Config;
@@ -20,6 +22,7 @@ public partial class MainWindow : Window
 {
     private readonly LayoutController _layout = new();
     private readonly ObservableCollection<WindowItem> _windowItems = new();
+    private readonly ICollectionView _windowView;
     private readonly DispatcherTimer _windowRefreshTimer = new() { Interval = TimeSpan.FromSeconds(2) };
     private StreamWindow? _stream;
     private StreamSurface? _streamSurface;
@@ -29,7 +32,9 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        WindowList.ItemsSource = _windowItems;
+        _windowView = CollectionViewSource.GetDefaultView(_windowItems);
+        _windowView.Filter = FilterWindow;
+        WindowList.ItemsSource = _windowView;
         _windowRefreshTimer.Tick += (_, _) => RefreshWindows();
 
         Loaded += (_, _) =>
@@ -65,6 +70,8 @@ public partial class MainWindow : Window
         _settings = SettingsService.Load();
         if (!string.IsNullOrWhiteSpace(_settings.LastUrl)) UrlBox.Text = _settings.LastUrl;
         OnTopCheck.IsChecked = _settings.StreamAlwaysOnTop;
+        PresOnlyCheck.IsChecked = _settings.PresentationsOnly;
+        _windowView.Refresh();
     }
 
     private void SaveSettings()
@@ -72,6 +79,7 @@ public partial class MainWindow : Window
         _settings.LastUrl = UrlBox.Text?.Trim();
         _settings.LastDisplayIndex = MonitorCombo.SelectedIndex;
         _settings.StreamAlwaysOnTop = OnTopCheck.IsChecked == true;
+        _settings.PresentationsOnly = PresOnlyCheck.IsChecked == true;
         SettingsService.Save(_settings);
     }
 
@@ -103,7 +111,7 @@ public partial class MainWindow : Window
         foreach (var w in live)
         {
             if (existing.TryGetValue(w.Handle, out var item)) item.Title = w.Title;
-            else _windowItems.Add(new WindowItem(w.Handle, w.Title));
+            else _windowItems.Add(new WindowItem(w.Handle, w.Title, w.ProcessName));
         }
         for (int i = _windowItems.Count - 1; i >= 0; i--)
             if (!liveHandles.Contains(_windowItems[i].Handle))
@@ -111,6 +119,21 @@ public partial class MainWindow : Window
 
         UpdateTracked();
     }
+
+    private bool FilterWindow(object obj)
+    {
+        if (obj is not WindowItem w) return false;
+        if (PresOnlyCheck?.IsChecked == true && !w.IsPresentationApp) return false;
+        var q = SearchBox?.Text?.Trim();
+        if (!string.IsNullOrEmpty(q) &&
+            w.Title.IndexOf(q, StringComparison.OrdinalIgnoreCase) < 0)
+            return false;
+        return true;
+    }
+
+    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) => _windowView.Refresh();
+
+    private void PresOnlyCheck_Click(object sender, RoutedEventArgs e) => _windowView.Refresh();
 
     private void UpdateTracked()
     {

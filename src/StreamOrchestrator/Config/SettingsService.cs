@@ -9,6 +9,7 @@ public sealed class AppSettings
     public string? LastUrl { get; set; }
     public int LastDisplayIndex { get; set; }
     public bool StreamAlwaysOnTop { get; set; }
+    public bool PresentationsOnly { get; set; } = true;
 }
 
 /// <summary>Loads/saves <see cref="AppSettings"/> as JSON under %LOCALAPPDATA%.</summary>
