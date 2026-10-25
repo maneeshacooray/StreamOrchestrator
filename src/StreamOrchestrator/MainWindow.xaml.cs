@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using StreamOrchestrator.Config;
@@ -30,6 +31,12 @@ public partial class MainWindow : Window
     private AppSettings _settings = new();
     private bool _suppressAppMonitorChange;
 
+    private sealed record HotkeyAction(string Id, string Name, Action Invoke, uint DefaultMods, uint DefaultVk);
+    private List<HotkeyAction> _hotkeyActions = null!;
+    private readonly ObservableCollection<HotkeyRow> _hotkeyRows = new();
+    private string? _capturingActionId;
+    private string? _captureOldDisplay;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -38,11 +45,16 @@ public partial class MainWindow : Window
         WindowList.ItemsSource = _windowView;
         _windowRefreshTimer.Tick += (_, _) => RefreshWindows();
 
+        BuildHotkeyActions();
+        HotkeyList.ItemsSource = _hotkeyRows;
+
         Loaded += (_, _) =>
         {
             LoadSettings();
             LoadMonitors();
             ApplyPanelPreferences();
+            RegisterHotkeys();
+            RefreshHotkeyRows();
             RefreshWindows();
             _windowRefreshTimer.Start();
         };
@@ -59,12 +71,117 @@ public partial class MainWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        var hwnd = new WindowInteropHelper(this).Handle;
-        _hotkeys = new HotkeyService(hwnd);
-        uint ctrlAlt = NativeMethods.MOD_CONTROL | NativeMethods.MOD_ALT;
-        _hotkeys.Register(ctrlAlt, 0x53 /* S */, () => SwapButton_Click(this, null!));
-        _hotkeys.Register(ctrlAlt, 0x4D /* M */, () => MoveButton_Click(this, null!));
-        _hotkeys.Register(ctrlAlt, 0x54 /* T */, ToggleAlwaysOnTop);
+        _hotkeys = new HotkeyService(new WindowInteropHelper(this).Handle);
+        // Actual bindings are registered in Loaded, once settings are read.
+    }
+
+    // ---- Configurable global hotkeys ----
+
+    private void BuildHotkeyActions()
+    {
+        uint ca = NativeMethods.MOD_CONTROL | NativeMethods.MOD_ALT;
+        _hotkeyActions = new List<HotkeyAction>
+        {
+            new("swap",       "Swap displays",      () => SwapButton_Click(this, null!), ca, 0x53 /* S */),
+            new("move",       "Move stream",        () => MoveButton_Click(this, null!), ca, 0x4D /* M */),
+            new("stream-top", "Keep stream on top", ToggleAlwaysOnTop,                   ca, 0x54 /* T */),
+            new("pin-panel",  "Pin control panel",  TogglePinPanel,                      ca, 0x50 /* P */),
+        };
+    }
+
+    private Hotkey GetBinding(HotkeyAction a) =>
+        _settings.Hotkeys.TryGetValue(a.Id, out var hk)
+            ? hk
+            : new Hotkey { Modifiers = a.DefaultMods, Vk = a.DefaultVk };
+
+    /// <summary>Re-registers all hotkeys from current settings; returns actions the OS rejected.</summary>
+    private List<string> RegisterHotkeys()
+    {
+        var failed = new List<string>();
+        if (_hotkeys is null) return failed;
+        _hotkeys.UnregisterAll();
+        foreach (var a in _hotkeyActions)
+        {
+            var hk = GetBinding(a);
+            if (hk.IsSet && !_hotkeys.Register(hk.Modifiers, hk.Vk, a.Invoke))
+                failed.Add(a.Name);
+        }
+        return failed;
+    }
+
+    private void RefreshHotkeyRows()
+    {
+        _hotkeyRows.Clear();
+        foreach (var a in _hotkeyActions)
+        {
+            var hk = GetBinding(a);
+            _hotkeyRows.Add(new HotkeyRow(a.Id, a.Name, HotkeyFormat.Describe(hk.Modifiers, hk.Vk)));
+        }
+    }
+
+    private void SetHotkey_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { DataContext: HotkeyRow row }) return;
+        CancelCapture();
+        _capturingActionId = row.Id;
+        _captureOldDisplay = row.Display;
+        row.Capturing = true;
+        row.Display = "Press a key combo…  (Esc to cancel)";
+        StatusText.Text = "Listening for a hotkey… hold modifiers (Ctrl/Alt/Shift/Win) and press a key.";
+        Focus();
+    }
+
+    private void ClearHotkey_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { DataContext: HotkeyRow row }) return;
+        CancelCapture();
+        _settings.Hotkeys[row.Id] = new Hotkey { Modifiers = 0, Vk = 0 };
+        row.Display = HotkeyFormat.Describe(0, 0);
+        RegisterHotkeys();
+        StatusText.Text = $"Cleared hotkey for {row.Name}.";
+    }
+
+    private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (_capturingActionId is null) return;
+
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (key == Key.Escape) { CancelCapture(); e.Handled = true; return; }
+        if (HotkeyFormat.IsModifierKey(key)) { e.Handled = true; return; } // wait for a real key
+
+        var mods = HotkeyFormat.ToWin32Modifiers(Keyboard.Modifiers);
+        if (mods == 0)
+        {
+            StatusText.Text = "Use at least one modifier (Ctrl / Alt / Shift / Win).";
+            e.Handled = true;
+            return;
+        }
+
+        var vk = HotkeyFormat.ToVirtualKey(key);
+        var row = _hotkeyRows.First(r => r.Id == _capturingActionId);
+        _settings.Hotkeys[_capturingActionId] = new Hotkey { Modifiers = mods, Vk = vk };
+        row.Display = HotkeyFormat.Describe(mods, vk);
+        row.Capturing = false;
+        _capturingActionId = null;
+        e.Handled = true;
+
+        var failed = RegisterHotkeys();
+        StatusText.Text = failed.Contains(row.Name)
+            ? $"“{row.Display}” is already in use by another app — pick another."
+            : $"Set {row.Name} to {row.Display}.";
+    }
+
+    private void CancelCapture()
+    {
+        if (_capturingActionId is null) return;
+        var row = _hotkeyRows.FirstOrDefault(r => r.Id == _capturingActionId);
+        if (row is not null)
+        {
+            row.Capturing = false;
+            if (_captureOldDisplay is not null) row.Display = _captureOldDisplay;
+        }
+        _capturingActionId = null;
+        _captureOldDisplay = null;
     }
 
     private void LoadSettings()
@@ -296,7 +413,15 @@ public partial class MainWindow : Window
         }
     }
 
-    private void PinPanelToggle_Click(object sender, RoutedEventArgs e)
+    private void PinPanelToggle_Click(object sender, RoutedEventArgs e) => ApplyPinPanel();
+
+    private void TogglePinPanel()
+    {
+        PinPanelToggle.IsChecked = PinPanelToggle.IsChecked != true;
+        ApplyPinPanel();
+    }
+
+    private void ApplyPinPanel()
     {
         Topmost = PinPanelToggle.IsChecked == true;
         StatusText.Text = Topmost ? "Control panel pinned on top." : "Control panel unpinned.";
@@ -337,10 +462,12 @@ public partial class MainWindow : Window
     private void Nav_Checked(object sender, RoutedEventArgs e)
     {
         // Can fire during XAML parse before the panels exist; guard until they do.
-        if (StreamPanel is null || DisplaysPanel is null || PresentationsPanel is null) return;
+        if (StreamPanel is null || DisplaysPanel is null || PresentationsPanel is null || HotkeysPanel is null) return;
+        if (_capturingActionId is not null) CancelCapture();
         StreamPanel.Visibility = NavStream.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         DisplaysPanel.Visibility = NavDisplays.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PresentationsPanel.Visibility = NavPresentations.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        HotkeysPanel.Visibility = NavHotkeys.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private static readonly System.Windows.Media.Brush LiveBrush =
