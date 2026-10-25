@@ -204,6 +204,34 @@
             </Setter>
         </Style>
 
+        <!-- Sidebar icon toggle (always-on-top controls) -->
+        <Style x:Key="SidebarToggle" TargetType="ToggleButton">
+            <Setter Property="Foreground" Value="{StaticResource TextMid}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="9">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#262B30" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="{StaticResource Accent}" />
+                                <Setter Property="Foreground" Value="{StaticResource Ink}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="SectionTitle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource TextHi}" />
             <Setter Property="FontSize" Value="18" />
@@ -244,8 +272,25 @@
                                VerticalAlignment="Center" />
                 </StackPanel>
 
-                <!-- Footer: live status + version -->
+                <!-- Footer: keep-on-top toggles + live status + version -->
                 <StackPanel DockPanel.Dock="Bottom" Margin="18,12,12,16">
+                    <TextBlock Text="KEEP ON TOP" Foreground="{StaticResource TextDim}" FontSize="10.5"
+                               FontWeight="SemiBold" Margin="2,0,0,8" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <ToggleButton x:Name="PinPanelToggle" Style="{StaticResource SidebarToggle}"
+                                      Click="PinPanelToggle_Click" ToolTip="Pin control panel on top">
+                            <Path Stretch="Uniform" Width="19" Height="19"
+                                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+                                  Data="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z" />
+                        </ToggleButton>
+                        <ToggleButton x:Name="StreamOnTopToggle" Style="{StaticResource SidebarToggle}"
+                                      Click="StreamOnTopToggle_Click" ToolTip="Keep stream on top">
+                            <Path Stretch="Uniform" Width="20" Height="20"
+                                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+                                  Data="M3,13H5V11H3V13M3,17H5V15H3V17M5,21V19H3A2,2 0 0,0 5,21M3,9H5V7H3V9M17,3H7A2,2 0 0,0 5,5H19A2,2 0 0,0 17,3M19,17H21V15H19V17M19,13H21V11H19V13M9,21H11V19H9V21M19,21A2,2 0 0,0 21,19H19V21M19,9H21V7H19V9M13,21H15V19H13V21M19,5V3A2,2 0 0,0 21,5H19M7,17H17V7H7V17Z" />
+                        </ToggleButton>
+                    </StackPanel>
+
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <Ellipse x:Name="LiveDot" Width="9" Height="9" Fill="{StaticResource TextDim}" VerticalAlignment="Center" />
                         <TextBlock x:Name="LiveText" Text="Idle" Foreground="{StaticResource TextMid}" FontSize="12.5"
@@ -314,14 +359,10 @@
                                 Click="SwapButton_Click" IsEnabled="False" MinWidth="140"
                                 ToolTip="Exchange the contents of the two displays" />
                     </StackPanel>
-                    <CheckBox x:Name="OnTopCheck" Content="Keep stream on top of other windows" Click="OnTopCheck_Click"
-                              Margin="0,0,0,18" />
-                    <Border Background="{StaticResource CardAlt}" CornerRadius="8" Padding="14,12" Margin="0,0,0,16">
+                    <Border Background="{StaticResource CardAlt}" CornerRadius="8" Padding="14,12" Margin="0,16,0,16">
                         <StackPanel>
                             <TextBlock Text="Control panel" Foreground="{StaticResource TextMid}" FontSize="12"
                                        FontWeight="SemiBold" Margin="0,0,0,10" />
-                            <CheckBox x:Name="PinPanelCheck" Content="Pin this window on top" Click="PinPanelCheck_Click"
-                                      Margin="0,0,0,12" />
                             <DockPanel LastChildFill="True">
                                 <TextBlock DockPanel.Dock="Left" Text="Show on" Foreground="{StaticResource TextMid}"
                                            FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0" />

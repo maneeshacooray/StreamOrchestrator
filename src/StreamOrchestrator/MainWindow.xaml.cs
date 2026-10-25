@@ -71,7 +71,7 @@ public partial class MainWindow : Window
     {
         _settings = SettingsService.Load();
         if (!string.IsNullOrWhiteSpace(_settings.LastUrl)) UrlBox.Text = _settings.LastUrl;
-        OnTopCheck.IsChecked = _settings.StreamAlwaysOnTop;
+        StreamOnTopToggle.IsChecked = _settings.StreamAlwaysOnTop;
         PresOnlyCheck.IsChecked = _settings.PresentationsOnly;
         _windowView.Refresh();
     }
@@ -80,9 +80,9 @@ public partial class MainWindow : Window
     {
         _settings.LastUrl = UrlBox.Text?.Trim();
         _settings.LastDisplayIndex = MonitorCombo.SelectedIndex;
-        _settings.StreamAlwaysOnTop = OnTopCheck.IsChecked == true;
+        _settings.StreamAlwaysOnTop = StreamOnTopToggle.IsChecked == true;
         _settings.PresentationsOnly = PresOnlyCheck.IsChecked == true;
-        _settings.PinControlPanelOnTop = PinPanelCheck.IsChecked == true;
+        _settings.PinControlPanelOnTop = PinPanelToggle.IsChecked == true;
         _settings.AppDisplayIndex = AppMonitorCombo.SelectedIndex;
         SettingsService.Save(_settings);
     }
@@ -260,17 +260,17 @@ public partial class MainWindow : Window
         StatusText.Text = "Restored moved windows.";
     }
 
-    private void OnTopCheck_Click(object sender, RoutedEventArgs e) => ApplyAlwaysOnTop();
+    private void StreamOnTopToggle_Click(object sender, RoutedEventArgs e) => ApplyAlwaysOnTop();
 
     private void ToggleAlwaysOnTop()
     {
-        OnTopCheck.IsChecked = OnTopCheck.IsChecked != true;
+        StreamOnTopToggle.IsChecked = StreamOnTopToggle.IsChecked != true;
         ApplyAlwaysOnTop();
     }
 
     private void ApplyAlwaysOnTop()
     {
-        bool onTop = OnTopCheck.IsChecked == true;
+        bool onTop = StreamOnTopToggle.IsChecked == true;
         _stream?.SetAlwaysOnTop(onTop);
         StatusText.Text = onTop ? "Stream kept on top." : "Stream on-top disabled.";
     }
@@ -283,7 +283,7 @@ public partial class MainWindow : Window
 
     private void ApplyPanelPreferences()
     {
-        PinPanelCheck.IsChecked = _settings.PinControlPanelOnTop;
+        PinPanelToggle.IsChecked = _settings.PinControlPanelOnTop;
         Topmost = _settings.PinControlPanelOnTop;
 
         if (AppMonitorCombo.ItemsSource is IReadOnlyList<MonitorInfo> monitors
@@ -296,9 +296,9 @@ public partial class MainWindow : Window
         }
     }
 
-    private void PinPanelCheck_Click(object sender, RoutedEventArgs e)
+    private void PinPanelToggle_Click(object sender, RoutedEventArgs e)
     {
-        Topmost = PinPanelCheck.IsChecked == true;
+        Topmost = PinPanelToggle.IsChecked == true;
         StatusText.Text = Topmost ? "Control panel pinned on top." : "Control panel unpinned.";
     }
 
@@ -361,7 +361,7 @@ public partial class MainWindow : Window
         if (_stream is not null) return;
         _stream = new StreamWindow();
         _streamSurface = new StreamSurface(_stream);
-        _stream.SetAlwaysOnTop(OnTopCheck.IsChecked == true);
+        _stream.SetAlwaysOnTop(StreamOnTopToggle.IsChecked == true);
         _stream.StatusChanged += status =>
         {
             switch (status)
