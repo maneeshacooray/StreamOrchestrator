@@ -297,7 +297,7 @@
                         <TextBlock x:Name="LiveText" Text="Idle" Foreground="{StaticResource TextMid}" FontSize="12.5"
                                    VerticalAlignment="Center" Margin="8,0,0,0" />
                     </StackPanel>
-                    <TextBlock Text="v0.2.0" Foreground="{StaticResource TextDim}" FontSize="11" />
+                    <TextBlock Text="v0.3.0" Foreground="{StaticResource TextDim}" FontSize="11" />
                 </StackPanel>
 
                 <!-- Nav -->
