@@ -32,6 +32,14 @@ public sealed class HotkeyService : IDisposable
         return true;
     }
 
+    /// <summary>Unregisters every hotkey but keeps the service usable for re-registration.</summary>
+    public void UnregisterAll()
+    {
+        foreach (var id in _actions.Keys)
+            NativeMethods.UnregisterHotKey(_hwnd, id);
+        _actions.Clear();
+    }
+
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         if (msg == NativeMethods.WM_HOTKEY && _actions.TryGetValue(wParam.ToInt32(), out var action))

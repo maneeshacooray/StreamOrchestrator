@@ -8,6 +8,7 @@
         Title="StreamOrchestrator" Height="560" Width="760" MinWidth="680" MinHeight="480"
         Icon="Assets/icon.ico"
         Background="#16181A"
+        PreviewKeyDown="Window_PreviewKeyDown"
         FontFamily="Segoe UI" TextOptions.TextFormattingMode="Ideal">
 
     <Window.Resources>
@@ -307,6 +308,8 @@
                                  Checked="Nav_Checked" />
                     <RadioButton x:Name="NavPresentations" Style="{StaticResource Nav}" GroupName="nav" Content="Presentations"
                                  Checked="Nav_Checked" />
+                    <RadioButton x:Name="NavHotkeys" Style="{StaticResource Nav}" GroupName="nav" Content="Hotkeys"
+                                 Checked="Nav_Checked" />
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -377,14 +380,8 @@
                         </StackPanel>
                     </Border>
 
-                    <Border Background="{StaticResource CardAlt}" CornerRadius="8" Padding="14,12">
-                        <StackPanel>
-                            <TextBlock Text="Hotkeys" Foreground="{StaticResource TextMid}" FontSize="12" FontWeight="SemiBold"
-                                       Margin="0,0,0,6" />
-                            <TextBlock Foreground="{StaticResource TextDim}" FontSize="12" TextWrapping="Wrap"
-                                       Text="Ctrl + Alt + S  —  swap displays&#x0a;Ctrl + Alt + M  —  move stream&#x0a;Ctrl + Alt + T  —  keep stream on top" />
-                        </StackPanel>
-                    </Border>
+                    <TextBlock Foreground="{StaticResource TextDim}" FontSize="12" TextWrapping="Wrap"
+                               Text="Tip: customise keyboard shortcuts in the Hotkeys tab." />
                 </StackPanel>
 
                 <!-- Presentations panel -->
@@ -474,6 +471,46 @@
                       </Grid>
                     </Border>
                 </Grid>
+
+                <!-- Hotkeys panel -->
+                <StackPanel x:Name="HotkeysPanel" Visibility="Collapsed">
+                    <TextBlock Text="Hotkeys" Style="{StaticResource SectionTitle}" />
+                    <TextBlock Text="Global shortcuts that work even while the stream is fullscreen. Click Set, then press a combo (with Ctrl / Alt / Shift / Win)."
+                               Style="{StaticResource SectionHint}" />
+                    <Border Background="{StaticResource CardAlt}" BorderBrush="{StaticResource Border}"
+                            BorderThickness="1" CornerRadius="8">
+                        <ItemsControl x:Name="HotkeyList" Margin="4">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <DockPanel LastChildFill="True" Margin="8,7">
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource GhostSmall}" Content="Clear"
+                                                Click="ClearHotkey_Click" MinWidth="56" Margin="6,0,0,0" />
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource GhostSmall}" Content="Set"
+                                                Click="SetHotkey_Click" MinWidth="56" />
+                                        <Border DockPanel.Dock="Right" Background="#16181A" BorderThickness="1"
+                                                CornerRadius="6" Padding="10,5" MinWidth="175" Margin="10,0,10,0">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="BorderBrush" Value="{StaticResource Border}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Capturing}" Value="True">
+                                                            <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding Display}" Foreground="{StaticResource TextHi}"
+                                                       FontSize="12.5" VerticalAlignment="Center" TextAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </Border>
+                                        <TextBlock Text="{Binding Name}" Foreground="{StaticResource TextHi}" FontSize="13"
+                                                   VerticalAlignment="Center" />
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Border>
+                </StackPanel>
             </Grid>
 
             <!-- Status bar -->
