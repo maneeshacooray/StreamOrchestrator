@@ -166,7 +166,9 @@ public partial class MainWindow : Window
     private void StopButton_Click(object sender, RoutedEventArgs e)
     {
         _stream?.Stop();
+        _stream?.Hide();        // remove the fullscreen surface from the display
         StopButton.IsEnabled = false;
+        MoveButton.IsEnabled = false;
         StatusText.Text = "Stopped.";
         SetLive("Idle", IdleBrush);
     }
