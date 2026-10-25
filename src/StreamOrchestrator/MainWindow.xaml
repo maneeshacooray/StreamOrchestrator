@@ -331,11 +331,35 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Text="Presentations" Style="{StaticResource SectionTitle}" />
-                    <TextBlock Grid.Row="0" Margin="0,0,0,0" />
-                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,12">
+
+                    <!-- Filter: presentations-only toggle + title search -->
+                    <DockPanel Grid.Row="1" Margin="0,8,0,8" LastChildFill="True">
+                        <CheckBox DockPanel.Dock="Left" x:Name="PresOnlyCheck" Content="Presentations only"
+                                  IsChecked="True" Click="PresOnlyCheck_Click" Margin="0,0,12,0"
+                                  ToolTip="Show only slide apps, PDF/image viewers and browsers" />
+                        <Grid>
+                            <TextBox x:Name="SearchBox" TextChanged="SearchBox_TextChanged" Padding="9,6" />
+                            <TextBlock Text="Search windows…" Foreground="{StaticResource TextDim}" FontSize="12.5"
+                                       Margin="11,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </DockPanel>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,12">
                         <Button x:Name="PrevButton" Style="{StaticResource GhostSmall}" Content="◀ Prev"
                                 Click="PrevButton_Click" IsEnabled="False" MinWidth="66"
                                 ToolTip="Cycle to the previous tracked presentation" />
@@ -348,8 +372,23 @@
                         <Button x:Name="RefreshWindowsButton" Style="{StaticResource GhostSmall}" Content="Refresh"
                                 Click="RefreshWindowsButton_Click" MinWidth="72" />
                     </StackPanel>
-                    <Border Grid.Row="2" Background="{StaticResource CardAlt}" BorderBrush="{StaticResource Border}"
+                    <Border Grid.Row="3" Background="{StaticResource CardAlt}" BorderBrush="{StaticResource Border}"
                             BorderThickness="1" CornerRadius="8">
+                      <Grid>
+                        <TextBlock Text="No presentation windows found.&#x0a;Uncheck “Presentations only” or clear the search to see all windows."
+                                   Foreground="{StaticResource TextDim}" FontSize="12.5" TextAlignment="Center"
+                                   TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasItems, ElementName=WindowList}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                         <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="4">
                             <ItemsControl x:Name="WindowList">
                                 <ItemsControl.ItemTemplate>
@@ -371,6 +410,7 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </ScrollViewer>
+                      </Grid>
                     </Border>
                 </Grid>
             </Grid>

@@ -1,10 +1,11 @@
+using System.Diagnostics;
 using System.Text;
 using StreamOrchestrator.Interop;
 
 namespace StreamOrchestrator.Windows;
 
 /// <summary>An external top-level window the user can place on a display.</summary>
-public sealed record WindowInfo(IntPtr Handle, string Title);
+public sealed record WindowInfo(IntPtr Handle, string Title, string ProcessName);
 
 /// <summary>
 /// Lists candidate "presentation" windows: visible, titled, top-level windows belonging to other
@@ -17,6 +18,7 @@ public static class WindowEnumerator
         var ownPid = (uint)Environment.ProcessId;
         var windows = new List<WindowInfo>();
         var sb = new StringBuilder(512);
+        var nameByPid = new Dictionary<uint, string>();
 
         NativeMethods.EnumWindows((hwnd, _) =>
         {
@@ -39,12 +41,28 @@ public static class WindowEnumerator
             var title = sb.ToString();
             if (string.IsNullOrWhiteSpace(title)) return true;
 
-            windows.Add(new WindowInfo(hwnd, title));
+            windows.Add(new WindowInfo(hwnd, title, GetProcessName(pid, nameByPid)));
             return true;
         }, IntPtr.Zero);
 
         return windows
             .OrderBy(w => w.Title, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
+    }
+
+    private static string GetProcessName(uint pid, Dictionary<uint, string> cache)
+    {
+        if (cache.TryGetValue(pid, out var name)) return name;
+        try
+        {
+            using var proc = Process.GetProcessById((int)pid);
+            name = proc.ProcessName; // without ".exe"
+        }
+        catch
+        {
+            name = string.Empty;
+        }
+        cache[pid] = name;
+        return name;
     }
 }
