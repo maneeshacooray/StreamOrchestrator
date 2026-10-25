@@ -28,6 +28,7 @@ public partial class MainWindow : Window
     private StreamSurface? _streamSurface;
     private HotkeyService? _hotkeys;
     private AppSettings _settings = new();
+    private bool _suppressAppMonitorChange;
 
     public MainWindow()
     {
@@ -41,6 +42,7 @@ public partial class MainWindow : Window
         {
             LoadSettings();
             LoadMonitors();
+            ApplyPanelPreferences();
             RefreshWindows();
             _windowRefreshTimer.Start();
         };
@@ -80,6 +82,8 @@ public partial class MainWindow : Window
         _settings.LastDisplayIndex = MonitorCombo.SelectedIndex;
         _settings.StreamAlwaysOnTop = OnTopCheck.IsChecked == true;
         _settings.PresentationsOnly = PresOnlyCheck.IsChecked == true;
+        _settings.PinControlPanelOnTop = PinPanelCheck.IsChecked == true;
+        _settings.AppDisplayIndex = AppMonitorCombo.SelectedIndex;
         SettingsService.Save(_settings);
     }
 
@@ -93,6 +97,12 @@ public partial class MainWindow : Window
             var idx = _settings.LastDisplayIndex;
             MonitorCombo.SelectedIndex = idx >= 0 && idx < monitors.Count ? idx : 0;
         }
+
+        // Populate the "Show on" combo, reflecting where this window currently sits.
+        _suppressAppMonitorChange = true;
+        AppMonitorCombo.ItemsSource = monitors;
+        AppMonitorCombo.SelectedIndex = monitors.Count > 0 ? IndexOfCurrentAppMonitor(monitors) : -1;
+        _suppressAppMonitorChange = false;
 
         bool multi = monitors.Count >= 2;
         SwapButton.IsEnabled = multi;
@@ -268,6 +278,61 @@ public partial class MainWindow : Window
     private void RefreshDisplaysButton_Click(object sender, RoutedEventArgs e) => LoadMonitors();
 
     private void RefreshWindowsButton_Click(object sender, RoutedEventArgs e) => RefreshWindows();
+
+    // ---- Control-panel window: pin on top + bind to a display ----
+
+    private void ApplyPanelPreferences()
+    {
+        PinPanelCheck.IsChecked = _settings.PinControlPanelOnTop;
+        Topmost = _settings.PinControlPanelOnTop;
+
+        if (AppMonitorCombo.ItemsSource is IReadOnlyList<MonitorInfo> monitors
+            && _settings.AppDisplayIndex >= 0 && _settings.AppDisplayIndex < monitors.Count)
+        {
+            _suppressAppMonitorChange = true;
+            AppMonitorCombo.SelectedIndex = _settings.AppDisplayIndex;
+            _suppressAppMonitorChange = false;
+            MoveAppToMonitor(monitors[_settings.AppDisplayIndex]);
+        }
+    }
+
+    private void PinPanelCheck_Click(object sender, RoutedEventArgs e)
+    {
+        Topmost = PinPanelCheck.IsChecked == true;
+        StatusText.Text = Topmost ? "Control panel pinned on top." : "Control panel unpinned.";
+    }
+
+    private void AppMonitorCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressAppMonitorChange) return;
+        if (AppMonitorCombo.SelectedItem is MonitorInfo m)
+        {
+            MoveAppToMonitor(m);
+            StatusText.Text = $"Control panel moved to {m.Label}.";
+        }
+    }
+
+    private void MoveAppToMonitor(MonitorInfo m)
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero) return;
+
+        // Top-left of the monitor's work area with a small margin; keep the current size.
+        const int margin = 48;
+        NativeMethods.SetWindowPos(hwnd, IntPtr.Zero,
+            m.WorkLeft + margin, m.WorkTop + margin, 0, 0,
+            NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE);
+    }
+
+    private int IndexOfCurrentAppMonitor(IReadOnlyList<MonitorInfo> monitors)
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        var current = hwnd != IntPtr.Zero ? MonitorService.GetMonitorForWindow(hwnd) : null;
+        if (current is null) return 0;
+        for (int i = 0; i < monitors.Count; i++)
+            if (monitors[i].Handle == current.Handle) return i;
+        return 0;
+    }
 
     private void Nav_Checked(object sender, RoutedEventArgs e)
     {
